@@ -1,5 +1,4 @@
 @import 'tailwindcss';
-
 @import 'tw-animate-css';
 
 @source '../views';
@@ -63,92 +62,109 @@
 :root {
     --radius: 0.625rem;
 
-    --background: white;
-    --foreground: #0f172a;
+    /* BASE */
+    --background: #f7fbfc;
+    --foreground: #112d4e;
 
     --card: #ffffff;
-    --card-foreground: #0f172a;
+    --card-foreground: #112d4e;
 
     --popover: #ffffff;
-    --popover-foreground: #0f172a;
+    --popover-foreground: #112d4e;
 
-    --primary: #1591dc;
+    /* PRIMARY (main action blue) */
+    --primary: #769fcd;
     --primary-foreground: #ffffff;
 
-    --secondary: #4bb8fa;
-    --secondary-foreground: #0f172a;
+    /* SECONDARY (soft UI blue) */
+    --secondary: #b9d7ea;
+    --secondary-foreground: #112d4e;
 
-    --muted: #c4e2f5;
-    --muted-foreground: #475569;
-
-    --accent: #2c5ead;
+    /* ACCENT (strong contrast blue) */
+    --accent: #3f72af;
     --accent-foreground: #ffffff;
+
+    /* MUTED (surface/background tint) */
+    --muted: #d6e6f2;
+    --muted-foreground: #3f72af;
 
     --destructive: #ef4444;
 
-    --border: #93c5fd;
-    --input: #93c5fd;
-    --ring: #1591dc;
+    --border: #d6e6f2;
+    --input: #d6e6f2;
+    --ring: #769fcd;
 
-    --chart-1: #2c5ead;
-    --chart-2: #1591dc;
-    --chart-3: #4bb8fa;
-    --chart-4: #93c5fd;
-    --chart-5: #1d4ed8;
+    /* CHART COLORS */
+    --chart-1: #769fcd;
+    --chart-2: #3f72af;
+    --chart-3: #b9d7ea;
+    --chart-4: #d6e6f2;
+    --chart-5: #112d4e;
 
+    /* SIDEBAR */
     --sidebar: #ffffff;
-    --sidebar-foreground: #0f172a;
-    --sidebar-primary: #1591dc;
+    --sidebar-foreground: #112d4e;
+    --sidebar-primary: #769fcd;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #4bb8fa;
-    --sidebar-accent-foreground: #0f172a;
-    --sidebar-border: #93c5fd;
-    --sidebar-ring: #1591dc;
+    --sidebar-accent: #b9d7ea;
+    --sidebar-accent-foreground: #112d4e;
+    --sidebar-border: #d6e6f2;
+    --sidebar-ring: #769fcd;
 }
 
 .dark {
     --background: #0b1b2b;
     --foreground: #e2e8f0;
 
-    --card: #0f2438;
+    --card: #112d4e;
     --card-foreground: #e2e8f0;
 
-    --popover: #0f2438;
+    --popover: #112d4e;
     --popover-foreground: #e2e8f0;
 
-    --primary: #4bb8fa;
+    /* PRIMARY */
+    --primary: #769fcd;
     --primary-foreground: #0b1b2b;
 
-    --secondary: #1591dc;
-    --secondary-foreground: #ffffff;
+    /* SECONDARY */
+    --secondary: #b9d7ea;
+    --secondary-foreground: #112d4e;
 
+    /* ACCENT */
+    --accent: #3f72af;
+    --accent-foreground: #ffffff;
+
+    /* MUTED */
     --muted: #1e3a5f;
     --muted-foreground: #94a3b8;
-
-    --accent: #2c5ead;
-    --accent-foreground: #ffffff;
 
     --destructive: #ef4444;
 
     --border: #1e3a5f;
     --input: #1e3a5f;
-    --ring: #4bb8fa;
+    --ring: #769fcd;
 
-    --chart-1: #4bb8fa;
-    --chart-2: #1591dc;
-    --chart-3: #2c5ead;
-    --chart-4: #60a5fa;
+    /* CHARTS */
+    --chart-1: #769fcd;
+    --chart-2: #3f72af;
+    --chart-3: #b9d7ea;
+    --chart-4: #d6e6f2;
     --chart-5: #93c5fd;
 
-    --sidebar: #0f2438;
+    /* SIDEBAR */
+    --sidebar: #112d4e;
     --sidebar-foreground: #e2e8f0;
-    --sidebar-primary: #4bb8fa;
+    --sidebar-primary: #769fcd;
     --sidebar-primary-foreground: #0b1b2b;
-    --sidebar-accent: #1591dc;
+    --sidebar-accent: #3f72af;
     --sidebar-accent-foreground: #ffffff;
     --sidebar-border: #1e3a5f;
-    --sidebar-ring: #4bb8fa;
+    --sidebar-ring: #769fcd;
 }
+
+/* =========================
+   BASE STYLES
+========================= */
 @layer base {
     * {
         @apply border-border;
@@ -158,8 +174,9 @@
         @apply bg-background text-foreground;
     }
 }
+
 /* =========================
-   TABLE BASE
+   TABLE STYLES
 ========================= */
 .table {
     width: 100%;
@@ -188,9 +205,6 @@
     font-weight: 600;
 }
 
-/* =========================
-   ROW STATES
-========================= */
 .table tbody tr {
     transition: background-color 0.2s ease;
 }
@@ -211,10 +225,6 @@
 /* =========================
    FOOTER
 ========================= */
-.table tfoot td {
-    padding: 1rem 1.5rem;
-}
-
 .table-footer {
     display: flex;
     width: 100%;
@@ -261,16 +271,13 @@
 }
 
 .table-pagination button:not(.active):hover {
-    background: var(--muted-hover-color);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
 }
 
 .table-pagination button.active {
     background: var(--primary);
-    color: white;
-}
-
-.dark .table-pagination button.active {
-    color: black;
+    color: var(--primary-foreground);
 }
 
 /* =========================

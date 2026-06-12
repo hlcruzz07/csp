@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UserRole;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CounselorController;
 use App\Http\Controllers\StudentController;
@@ -27,4 +28,24 @@ Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->grou
 
     Route::get('/dashboard', [StudentController::class, 'index'])->name('studentDashboard');
 });
+
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+
+    switch ($user->role->value) {
+        case UserRole::ADMIN->value:
+            return redirect()->route('adminDashboard');
+
+        case UserRole::COUNSELOR->value:
+            return redirect()->route('counselorDashboard');
+
+        case UserRole::STUDENT->value:
+            return redirect()->route('studentDashboard');
+
+        default:
+            return redirect('/');
+    }
+})->middleware('auth');
+
+
 require __DIR__ . '/settings.php';

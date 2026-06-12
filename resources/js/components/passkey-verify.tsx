@@ -33,6 +33,9 @@ export default function PasskeyVerify({
         onSuccess: (response) => {
             router.visit(response.redirect ?? '/dashboard');
         },
+        onError: () => {
+            console.error('An error occurred while verifying the passkey.');
+        },
     });
 
     if (!isSupported) {

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import {
     CheckCheckIcon,
     ChevronsUpDownIcon,
+    ListFilter,
     RefreshCwIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -43,12 +44,14 @@ export default function Filters() {
         setFilter(DEFAULT_FILTERS);
     };
     return (
-        <div>
-            <div className="flex gap-3">
-                <Button variant="secondary">
-                    <RefreshCwIcon />
-                </Button>
-                <Input placeholder="Search.." />
+        <div className="space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row">
+                <div className="flex grow gap-3">
+                    <Button variant="outline">
+                        <RefreshCwIcon />
+                    </Button>
+                    <Input placeholder="Search.." />
+                </div>
                 <div className="flex gap-3">
                     <FilterDropdown
                         label="Show"
@@ -61,8 +64,52 @@ export default function Filters() {
                             }))
                         }
                         icon={<ChevronsUpDownIcon />}
+                        className="grow"
+                    />
+
+                    <FilterDropdown
+                        label="Sort by"
+                        value={filter.sort}
+                        options={['id', 'name', 'email']}
+                        onChange={(value: string) =>
+                            setFilter((prev) => ({
+                                ...prev,
+                                sort: value,
+                            }))
+                        }
+                        icon={<ListFilter />}
+                        className="grow"
                     />
                 </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+                <FilterDropdown
+                    label="Sort by"
+                    value={filter.sort}
+                    options={['id', 'name', 'email']}
+                    onChange={(value: string) =>
+                        setFilter((prev) => ({
+                            ...prev,
+                            sort: value,
+                        }))
+                    }
+                    icon={<ListFilter />}
+                    className="w-max"
+                />
+                <FilterDropdown
+                    label="Sort by"
+                    value={filter.sort}
+                    options={['id', 'name', 'email']}
+                    onChange={(value: string) =>
+                        setFilter((prev) => ({
+                            ...prev,
+                            sort: value,
+                        }))
+                    }
+                    icon={<ListFilter />}
+                    className="w-max"
+                />
             </div>
         </div>
     );

@@ -8,9 +8,9 @@ export default function AppLogo() {
             </div>
             <div className="ml-1 grid flex-1 text-left text-sm">
                 <span className="mb-0.5 truncate text-lg leading-tight font-semibold">
-                    CSP
+                    CSS
                 </span>
-                <small>Counseling Support Platform</small>
+                <small>Counseling Support System</small>
             </div>
         </>
     );

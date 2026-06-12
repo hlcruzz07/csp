@@ -1,4 +1,4 @@
-import { capitalizeString } from '@/lib/utils';
+import { capitalizeString, cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import {
@@ -17,6 +17,7 @@ type FilterDropdownProps = {
     onChange: (value: any | null) => void;
     icon?: ReactNode;
     allowClear?: boolean;
+    className?: string;
 };
 
 export default function FilterDropdown({
@@ -26,11 +27,15 @@ export default function FilterDropdown({
     onChange,
     icon,
     allowClear = false,
+    className,
 }: FilterDropdownProps) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="secondary">
+                <Button
+                    variant="outline"
+                    className={cn('flex items-center gap-2', className)}
+                >
                     {icon && icon}
                     {label}
 
@@ -44,7 +49,7 @@ export default function FilterDropdown({
                 </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent>
+            <DropdownMenuContent className="w-max">
                 {options.map((item) => {
                     const isActive = value === item;
 
