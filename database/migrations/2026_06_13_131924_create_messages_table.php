@@ -19,8 +19,11 @@ return new class extends Migration
             $table->foreignId('sender_id')
                 ->constrained('users')
                 ->onDelete('cascade');
+            $table->foreignId('category_id')
+                ->nullable()
+                ->constrained('categories')
+                ->nullOnDelete();
             $table->text('content');
-            $table->string('category')->nullable();
             $table->boolean('is_structured')->default(false);
             $table->enum('status', ['sent', 'seen', 'responded']);
             $table->timestamps();

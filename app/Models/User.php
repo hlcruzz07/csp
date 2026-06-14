@@ -16,7 +16,7 @@ use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['uuid', 'name', 'pseudonym', 'email', 'password', 'is_anonymous', 'role', 'college'])]
+#[Fillable(['uuid', 'name', 'pseudonym', 'email', 'password', 'is_anonymous', 'role'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 
 class User extends Authenticatable implements PasskeyUser
@@ -42,5 +42,42 @@ class User extends Authenticatable implements PasskeyUser
             'role' => UserRole::class,
             'is_anonymous' => 'boolean'
         ];
+    }
+
+    public function consent()
+    {
+        return $this->hasOne(Consent::class, 'user_id');
+    }
+
+    public function assignedCollege()
+    {
+        return $this->hasOneThrough(
+            College::class,
+            UserCollege::class,
+            'user_id',    // Foreign key on user_colleges
+            'id',         // Foreign key on colleges
+            'id',         // Local key on users
+            'college_id'  // Local key on user_colleges
+        );
+    }
+
+    public function counselor()
+    {
+        return $this->belongsTo(User::class, 'counselor_id');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function studentConversation()
+    {
+        return $this->hasOne(Conversation::class, 'student_id');
+    }
+
+    public function counselorConversations()
+    {
+        return $this->hasMany(Conversation::class, 'counselor_id');
     }
 }

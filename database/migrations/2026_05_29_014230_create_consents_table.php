@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('consents', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->boolean('consent_given')->default(true);
             $table->timestamps();
         });
     }

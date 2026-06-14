@@ -26,10 +26,13 @@ export default function AppSidebarLayout({
             ) : auth.user.role === 'counselor' ? (
                 <CounselorSidebar />
             ) : (
-                <StudentSidebar />
+                ''
             )}
             <AppContent variant="sidebar" className="overflow-x-hidden">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                {(auth.user.role === 'admin' ||
+                    auth.user.role === 'counselor') && (
+                    <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                )}
                 {children}
             </AppContent>
         </AppShell>

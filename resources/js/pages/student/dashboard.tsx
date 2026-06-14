@@ -1,36 +1,83 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import { adminDashboard, studentDashboard } from '@/routes';
-
+import { adminDashboard, checkConversation, studentDashboard } from '@/routes';
+import CompleteStudentModal from './modal/CompleteStudentModal';
+import { useEffect, useState } from 'react';
+import apiService from '@/lib/api-service';
+import { UserProps } from '@/types/entities';
+import MatchingCounselorModal from './modal/MatchingCounselorModal';
+import WelcomeModal from './modal/WelcomeModal';
+import StudentLayout from '@/layouts/student-layout';
+type PageProps = {
+    isCompleted: boolean;
+};
 export default function Dashboard() {
+    const { isCompleted, auth } = usePage<PageProps>().props;
+
+    const [hasConvo, setHasConvo] = useState(false);
+    const [isOpenWelcome, setOpenWelcome] = useState(false);
+
+    useEffect(() => {
+        if (!isCompleted) return;
+
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        const poll = async () => {
+            try {
+                const response = await apiService.get(checkConversation().url);
+
+                const hasConversation = response.data.hasConversation;
+
+                setHasConvo(hasConversation);
+
+                if (!hasConversation) {
+                    timeoutId = setTimeout(poll, 3000);
+                    return;
+                }
+
+                // Respect "don't show again" cookie
+                const cookie = document.cookie
+                    .split('; ')
+                    .find((row) => row.startsWith('csp_welcome_no_show='))
+                    ?.split('=')[1];
+
+                if (!cookie) {
+                    setOpenWelcome(true);
+                }
+            } catch (error) {
+                console.error(error);
+                timeoutId = setTimeout(poll, 3000);
+            }
+        };
+
+        poll();
+
+        return () => {
+            clearTimeout(timeoutId);
+        };
+    }, [isCompleted]);
+
+    if (!isCompleted) {
+        return <CompleteStudentModal />;
+    }
+
+    if (!hasConvo) {
+        return <MatchingCounselorModal />;
+    }
+
     return (
-        <>
-            <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+        <StudentLayout>
+            <WelcomeModal open={isOpenWelcome} setOpen={setOpenWelcome} />
+            <div className="h-full overflow-auto border">
+                {Array.from({ length: 10 }).map((_, index) => (
+                    <div
+                        key={index}
+                        className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
+                    >
                         <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
                     </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
+                ))}
             </div>
-        </>
+        </StudentLayout>
     );
 }
-
-Dashboard.layout = {
-    breadcrumbs: [
-        {
-            title: 'Dashboard',
-            href: studentDashboard(),
-        },
-    ],
-};

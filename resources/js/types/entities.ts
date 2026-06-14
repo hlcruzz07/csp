@@ -6,6 +6,7 @@ export type CollegeProps = {
 
 export type UserProps = {
     id: number;
+    avatar?: string;
     uuid: string;
     email: string;
     name: string;

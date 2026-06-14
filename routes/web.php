@@ -27,10 +27,14 @@ Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->grou
     Route::get('/', fn() => redirect()->route('studentDashboard'));
 
     Route::get('/dashboard', [StudentController::class, 'index'])->name('studentDashboard');
+    Route::post('/complete', [StudentController::class, 'complete'])->name('studentComplete');
 });
 
 Route::get('/dashboard', function () {
+
+
     $user = auth()->user();
+    // dd($user);
 
     switch ($user->role->value) {
         case UserRole::ADMIN->value:
@@ -47,5 +51,14 @@ Route::get('/dashboard', function () {
     }
 })->middleware('auth');
 
+Route::get('/debug-job', function () {
+    app()->makeWith(\App\Jobs\FindStudentCounselorJob::class, [
+        'studentId' => 1
+    ])->handle();
+
+    return 'job executed';
+});
+
 
 require __DIR__ . '/settings.php';
+require __DIR__ . '/api.php';
