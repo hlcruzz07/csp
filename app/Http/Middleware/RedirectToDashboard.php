@@ -16,9 +16,14 @@ class RedirectToDashboard
             return $next($request);
         }
 
-        return match ($user->role) {
+        $role = $user->role;
+        if (is_object($role) && property_exists($role, 'value')) {
+            $role = $role->value;
+        }
+
+        return match (strtolower((string) $role)) {
             'admin' => redirect('/admin/dashboard'),
-            'faculty' => redirect('/faculty/dashboard'),
+            'counselor' => redirect('/counselor/dashboard'),
             'student' => redirect('/student/dashboard'),
             default => $next($request),
         };

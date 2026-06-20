@@ -327,3 +327,47 @@
         align-items: center;
     }
 }
+.react-input-emoji--container {
+    color: var(--foreground) !important;
+    text-rendering: optimizeLegibility !important;
+    background-color: var(--background) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 21px;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+    font-family: sans-serif;
+    font-weight: 400;
+    outline: none;
+    border: 1px solid var(--border) !important;
+}
+.react-input-emoji--input {
+    font-weight: 400;
+    max-height: 100px;
+    min-height: 20px;
+    outline: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    z-index: 1;
+    flex-grow: 1;
+    user-select: text;
+    padding: 8px 15px !important;
+    text-align: left;
+}
+
+.react-emoji {
+    display: flex !important;
+    align-items: center !important;
+}
+.react-emoji-picker--wrapper {
+    position: absolute;
+    bottom: 0;
+    right: -35px !important;
+    height: 435px;
+    width: 352px;
+    overflow: hidden;
+    z-index: 10;
+}

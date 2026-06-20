@@ -16,7 +16,20 @@ class RoleMiddleware
             abort(401);
         }
 
-        if ($user->role->value !== $role) {
+        // Allow multiple roles (comma or pipe separated)
+        $allowed = preg_split('/\s*[,|]\s*/', $role) ?: [];
+
+        // Normalize allowed roles to lowercase strings
+        $allowed = array_map(fn($r) => strtolower(trim($r)), $allowed);
+
+        // Determine user's role as a string (handles enum or plain string)
+        $userRole = $user->role;
+        if (is_object($userRole) && property_exists($userRole, 'value')) {
+            $userRole = $userRole->value;
+        }
+        $userRole = strtolower((string) $userRole);
+
+        if (!in_array($userRole, $allowed, true)) {
             abort(403, 'Unauthorized.');
         }
 

@@ -34,7 +34,6 @@ Route::get('/dashboard', function () {
 
 
     $user = auth()->user();
-    // dd($user);
 
     switch ($user->role->value) {
         case UserRole::ADMIN->value:

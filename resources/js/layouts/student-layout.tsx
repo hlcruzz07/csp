@@ -11,13 +11,14 @@ import {
     EllipsisVerticalIcon,
     ImageIcon,
     ImagePlusIcon,
+    SendHorizontal,
     SendIcon,
     SmileIcon,
     UserPenIcon,
     XCircleIcon,
     XIcon,
 } from 'lucide-react';
-
+import InputEmoji from 'react-input-emoji';
 type StudentLayoutProps = {
     children: React.ReactNode;
 };
@@ -26,26 +27,28 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     const getInitials = useInitials();
     const counselor = auth.user?.student_conversation.counselor;
 
-    console.log(auth);
+    // const {data, }
+
     return (
-        <div className="flex h-screen flex-col">
+        <div className="flex h-screen flex-col overflow-hidden">
             <div className="flex items-center justify-between p-3">
-                <div className="flex cursor-pointer items-center gap-2 rounded-md bg-background px-2 py-1.5 shadow-xs duration-300 hover:bg-accent hover:text-accent-foreground">
-                    <Avatar className="size-12 overflow-hidden rounded-full">
+                <div className="flex cursor-pointer items-center gap-2 rounded-md bg-background shadow-xs duration-300 hover:bg-accent hover:text-accent-foreground">
+                    <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
                             src={counselor.avatar}
                             alt={normalizeName(counselor.name)}
                         />
-                        <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                        <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black md:text-sm dark:bg-neutral-700 dark:text-white">
                             {getInitials(normalizeName(counselor.name) ?? '')}
                         </AvatarFallback>
                     </Avatar>
 
-                    <div className="flex flex-col">
+                    <div className="flex flex-col text-sm md:text-base">
                         <h1>{normalizeName(counselor.name)}</h1>
                         <small className="capitalized">
                             {normalizeName(counselor.role)} -{' '}
-                            {auth.user?.assigned_college.name}
+                            {auth.user?.assigned_college.name}{' '}
+                            {`(${auth.user?.assigned_college.code})`}
                         </small>
                     </div>
                 </div>
@@ -62,36 +65,39 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
             </div>
             {children}
             <form className="relative space-y-3 p-3">
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] gap-3">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                        <div className="relative aspect-square">
-                            <div className="h-full overflow-hidden rounded-xl border">
-                                <img
-                                    src="/logo.webp"
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                />
-                            </div>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-3">
+                    {Array.from({ length: 5 }).map((_, index) => {
+                        const imageNumber = Math.floor(Math.random() * 3) + 1;
 
-                            <Badge className="absolute -top-1 -right-1 z-10 p-0">
-                                <XIcon className="size-3" />
-                            </Badge>
-                        </div>
-                    ))}
+                        return (
+                            <div className="relative aspect-square" key={index}>
+                                <div className="h-full overflow-hidden rounded-xl border">
+                                    <img
+                                        src={`/sample${imageNumber}.jpg`}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
+                                </div>
+
+                                <Badge className="absolute -top-1 -right-1 z-10 cursor-pointer p-0">
+                                    <XIcon className="size-3" />
+                                </Badge>
+                            </div>
+                        );
+                    })}
 
                     <Button
                         type="button"
                         size="icon"
-                        className="aspect-square h-auto w-full"
+                        className="aspect-square h-auto w-full cursor-pointer"
                     >
                         <ImagePlusIcon />
                     </Button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-start gap-2">
                     <Button
                         variant={'link'}
                         size={'icon'}
-                        disabled
                         type="button"
                         className="cursor-pointer border p-0!"
                         onClick={() =>
@@ -107,19 +113,17 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                             multiple
                         />
                     </Button>{' '}
-                    <div className="relative flex grow items-center">
-                        <Input placeholder="Write a message..." />
-
-                        <Button
-                            type="button"
-                            variant={'link'}
-                            className="absolute right-2 cursor-pointer p-0!"
-                        >
-                            <SmileIcon size={20} />
-                        </Button>
-                    </div>
-                    <Button type="submit">
-                        <SendIcon />
+                    <InputEmoji
+                        fontSize={12}
+                        placeholderColor="#d6e6f2"
+                        placeholder="Type a message"
+                        cleanOnEnter
+                        onEnter={(text) => console.log('enter', text)}
+                        value=""
+                        onChange={() => {}}
+                    />
+                    <Button type="submit" className="w-28 cursor-pointer">
+                        Send <SendHorizontal />
                     </Button>
                 </div>
             </form>

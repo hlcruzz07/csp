@@ -49,7 +49,7 @@ export default function FilterDropdown({
                 </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent className="w-max">
+            <DropdownMenuContent>
                 {options.map((item) => {
                     const isActive = value === item;
 
