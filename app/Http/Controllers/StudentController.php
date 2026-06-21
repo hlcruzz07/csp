@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompleteStudentRequest;
+use App\Http\Requests\UpdateStudentProfileRequest;
 use App\Jobs\FindStudentCounselorJob;
 use App\Models\College;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class StudentController extends Controller
@@ -51,8 +53,37 @@ class StudentController extends Controller
         } catch (\Throwable $th) {
             Inertia::flash('toast', [
                 'type' => 'error',
-                'message' => 'Something went wrong: yudipota',
+                'message' => 'Something went wrong completing info. Please try again',
             ]);
+
+            Log::error('Error completing student ' . $th->getMessage());
+
+            return redirect()->back();
+        }
+    }
+    public function updateProfile(UpdateStudentProfileRequest $request)
+    {
+
+        try {
+            $this->studentRepo->updateProfile(
+                $request->all(),
+                auth()->user()->id
+            );
+
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'Student Profile Updated',
+            ]);
+
+            return redirect()->back();
+        } catch (\Throwable $th) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Something went wrong updating student profile.',
+            ]);
+
+            Log::error('Error updating student profile ' . $th->getMessage());
 
             return redirect()->back();
         }

@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useInitials } from '@/hooks/use-initials';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { normalizeName } from '@/lib/utils';
+import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
 import { usePage } from '@inertiajs/react';
 import {
     CircleAlertIcon,
@@ -26,13 +28,12 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     const { auth } = usePage<any>().props;
     const getInitials = useInitials();
     const counselor = auth.user?.student_conversation.counselor;
-
-    // const {data, }
+    const isMobile = useIsMobile();
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
             <div className="flex items-center justify-between p-3">
-                <div className="flex cursor-pointer items-center gap-2 rounded-md bg-background shadow-xs duration-300 hover:bg-accent hover:text-accent-foreground">
+                <div className="flex cursor-pointer items-center gap-2">
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
                             src={counselor.avatar}
@@ -53,15 +54,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={'outline'}
-                        className="cursor-pointer"
-                        size={'sm'}
-                    >
-                        <EllipsisVerticalIcon />
-                    </Button>
-                </div>
+                <StudentDrawer />
             </div>
             {children}
             <form className="relative space-y-3 p-3">
@@ -122,8 +115,11 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                         value=""
                         onChange={() => {}}
                     />
-                    <Button type="submit" className="w-28 cursor-pointer">
-                        Send <SendHorizontal />
+                    <Button
+                        type="submit"
+                        className={`${!isMobile && 'w-28'} cursor-pointer`}
+                    >
+                        {!isMobile && 'Send'} <SendHorizontal />
                     </Button>
                 </div>
             </form>

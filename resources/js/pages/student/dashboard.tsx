@@ -82,13 +82,12 @@ export default function Dashboard() {
         return <MatchingCounselorModal />;
     }
 
-    console.log(auth);
     return (
         <StudentLayout>
             <WelcomeModal open={isOpenWelcome} setOpen={setOpenWelcome} />
 
             <div
-                className="m-2 my-0 flex h-full flex-col flex-col-reverse gap-2 overflow-auto rounded-lg border bg-accent/20 p-1 md:m-4 md:p-4"
+                className="m-2 my-0 flex h-full flex-col-reverse gap-2 overflow-auto rounded-lg border bg-accent/20 p-1 md:mx-4 md:p-4"
                 ref={containerRef}
             >
                 {Array.from({ length: 20 }).map((_, index) => {
@@ -101,7 +100,7 @@ export default function Dashboard() {
                                 isMine ? 'flex-row-reverse' : ''
                             }`}
                         >
-                            <Avatar className="size-6 overflow-hidden rounded-full md:size-8">
+                            <Avatar className="size-6 overflow-hidden rounded-full sm:size-10 md:size-12">
                                 <AvatarImage
                                     src=""
                                     alt={normalizeName(
@@ -111,7 +110,7 @@ export default function Dashboard() {
                                                   .counselor.name,
                                     )}
                                 />
-                                <AvatarFallback className="rounded-lg bg-neutral-200 text-[10px] text-black md:text-sm dark:bg-neutral-700 dark:text-white">
+                                <AvatarFallback className="rounded-lg bg-neutral-200 text-[10px] text-black sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
                                     {getInitials(
                                         normalizeName(
                                             isMine
@@ -126,7 +125,7 @@ export default function Dashboard() {
 
                             <div className={`max-w-[60%]`}>
                                 <div
-                                    className={`ms-2 mb-1 flex items-center px-2 text-xs md:text-sm ${
+                                    className={`ms-2 mb-1 flex items-center px-2 text-xs sm:text-sm lg:text-base ${
                                         isMine
                                             ? 'justify-end'
                                             : 'justify-between'
@@ -142,7 +141,7 @@ export default function Dashboard() {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <p
-                                            className={`rounded-3xl border ${isMine ? 'overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-background'} lg:text-sm" p-3 px-4 text-xs font-medium`}
+                                            className={`rounded-3xl border ${isMine ? 'overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-background'} p-3 px-4 text-xs font-medium sm:text-sm lg:text-base`}
                                         >
                                             Lorem ipsum dolor sit amet
                                             consectetur adipisicing elit.

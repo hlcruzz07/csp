@@ -69,83 +69,72 @@ export default function WelcomeModal({ open, setOpen }: WelcomeModalProps) {
                         guidelines and learn how the system works.
                     </p>
                 </DialogHeader>
-
                 {/* Content */}
-                <ScrollArea className="pr-3">
-                    <div className="space-y-6 text-sm">
-                        {/* System Overview */}
-                        <section className="space-y-2">
-                            <h3 className="text-base font-semibold">
-                                📌 System Overview
-                            </h3>
-                            <p className="leading-relaxed text-muted-foreground">
-                                This platform automatically connects students to
-                                assigned counselors within their college. You
-                                can chat securely, seek guidance, and receive
-                                academic or personal support.
-                            </p>
-                        </section>
+                <div className="no-scrollbar -mx-4 max-h-[50vh] space-y-5 overflow-y-auto px-4 text-sm">
+                    {/* System Overview */}
+                    <section className="space-y-2">
+                        <h3 className="text-base font-semibold">
+                            📌 System Overview
+                        </h3>
+                        <p className="leading-relaxed text-muted-foreground">
+                            This platform automatically connects students to
+                            assigned counselors within their college. You can
+                            chat securely, seek guidance, and receive academic
+                            or personal support.
+                        </p>
+                    </section>
 
-                        {/* Rules */}
-                        <section className="space-y-2">
-                            <h3 className="text-base font-semibold">
-                                📜 Rules & Regulations
-                            </h3>
-                            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-                                <li>
-                                    Always maintain respectful communication.
-                                </li>
-                                <li>
-                                    Do not share sensitive personal data unless
-                                    necessary.
-                                </li>
-                                <li>
-                                    Misuse of the system may result in account
-                                    restrictions.
-                                </li>
-                                <li>
-                                    Conversations are monitored for safety and
-                                    compliance.
-                                </li>
-                            </ul>
-                        </section>
+                    {/* Rules */}
+                    <section className="space-y-2">
+                        <h3 className="text-base font-semibold">
+                            📜 Rules & Regulations
+                        </h3>
+                        <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                            <li>Always maintain respectful communication.</li>
+                            <li>
+                                Do not share sensitive personal data unless
+                                necessary.
+                            </li>
+                            <li>
+                                Misuse of the system may result in account
+                                restrictions.
+                            </li>
+                            <li>
+                                Conversations are monitored for safety and
+                                compliance.
+                            </li>
+                        </ul>
+                    </section>
 
-                        {/* How to use */}
-                        <section className="space-y-2">
-                            <h3 className="text-base font-semibold">
-                                🚀 How to Use the System
-                            </h3>
-                            <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-                                <li>
-                                    Complete your student profile information.
-                                </li>
-                                <li>
-                                    Wait for automatic counselor assignment.
-                                </li>
-                                <li>
-                                    Start chatting with your assigned counselor.
-                                </li>
-                                <li>
-                                    Use the system responsibly for guidance and
-                                    support.
-                                </li>
-                            </ol>
-                        </section>
+                    {/* How to use */}
+                    <section className="space-y-2">
+                        <h3 className="text-base font-semibold">
+                            🚀 How to Use the System
+                        </h3>
+                        <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+                            <li>Complete your student profile information.</li>
+                            <li>Wait for automatic counselor assignment.</li>
+                            <li>
+                                Start chatting with your assigned counselor.
+                            </li>
+                            <li>
+                                Use the system responsibly for guidance and
+                                support.
+                            </li>
+                        </ol>
+                    </section>
 
-                        {/* Reminder */}
-                        <section className="rounded-lg border bg-muted/30 p-3">
-                            <p className="text-xs text-muted-foreground">
-                                ⚠️ By continuing, you agree to follow all rules
-                                and respect the counseling process.
-                            </p>
-                        </section>
-                    </div>
-                </ScrollArea>
-
+                    {/* Reminder */}
+                    <section className="rounded-lg border bg-muted/30 p-3">
+                        <p className="text-xs text-muted-foreground">
+                            ⚠️ By continuing, you agree to follow all rules and
+                            respect the counseling process.
+                        </p>
+                    </section>
+                </div>
                 {/* Footer action (optional) */}
-
                 <DialogFooter>
-                    <div className="mr-auto flex items-center gap-3">
+                    <div className="flex w-full flex-col justify-between gap-3 md:flex-row">
                         <label className="inline-flex items-center gap-2 text-sm">
                             <input
                                 id="dontShow"
@@ -156,19 +145,19 @@ export default function WelcomeModal({ open, setOpen }: WelcomeModalProps) {
                             />
                             <span>Don't show again</span>
                         </label>
+                        <DialogClose asChild>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    if (dontShow)
+                                        setCookie(COOKIE_NAME, '1', 365);
+                                    setOpen(false);
+                                }}
+                            >
+                                I Understand
+                            </Button>
+                        </DialogClose>
                     </div>
-
-                    <DialogClose asChild>
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                if (dontShow) setCookie(COOKIE_NAME, '1', 365);
-                                setOpen(false);
-                            }}
-                        >
-                            I Understand
-                        </Button>
-                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

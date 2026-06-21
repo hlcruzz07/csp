@@ -28,6 +28,7 @@ Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->grou
 
     Route::get('/dashboard', [StudentController::class, 'index'])->name('studentDashboard');
     Route::post('/complete', [StudentController::class, 'complete'])->name('studentComplete');
+    Route::post('/updateProfile', [StudentController::class, 'updateProfile'])->name('studentUpdateProfile');
 });
 
 Route::get('/dashboard', function () {
