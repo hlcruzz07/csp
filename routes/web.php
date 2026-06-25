@@ -19,7 +19,7 @@ Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->
 
     Route::get('/', fn() => redirect()->route('counselorDashboard'));
 
-    Route::get('/dashboard', [CounselorController::class, 'index'])->name('counselorDashboard');
+    Route::get('/conversation', [CounselorController::class, 'index'])->name('counselorDashboard');
 });
 
 Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->group(function () {
@@ -36,6 +36,8 @@ Route::get('/dashboard', function () {
 
     $user = auth()->user();
 
+    dd($user);
+
     switch ($user->role->value) {
         case UserRole::ADMIN->value:
             return redirect()->route('adminDashboard');
@@ -47,7 +49,7 @@ Route::get('/dashboard', function () {
             return redirect()->route('studentDashboard');
 
         default:
-            return redirect('/');
+            return 'test';
     }
 })->middleware('auth');
 

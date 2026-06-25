@@ -176,7 +176,7 @@ export default function Dashboard() {
                                                   : 'right'
                                         }
                                     >
-                                        <small className="text-[10px] lg:text-xs!">
+                                        <small className="text-[10px] md:text-xs! xl:text-sm!">
                                             Jan 1, 2026 - 11:36 PM
                                         </small>
                                     </TooltipContent>

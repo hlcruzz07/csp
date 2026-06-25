@@ -21,16 +21,9 @@ export default function AppSidebarLayout({
 
     return (
         <AppShell variant="sidebar">
-            {auth.user.role === 'admin' ? (
-                <AdminSidebar />
-            ) : auth.user.role === 'counselor' ? (
-                <CounselorSidebar />
-            ) : (
-                ''
-            )}
+            {auth.user.role === 'admin' && <AdminSidebar />}
             <AppContent variant="sidebar" className="overflow-x-hidden">
-                {(auth.user.role === 'admin' ||
-                    auth.user.role === 'counselor') && (
+                {auth.user.role === 'admin' && (
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 )}
                 {children}
