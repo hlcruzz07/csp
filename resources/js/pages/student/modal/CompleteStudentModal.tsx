@@ -49,6 +49,8 @@ export default function CompleteStudentModal() {
 
     const { colleges } = usePage<PageProps>().props;
 
+    console.log(colleges);
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
@@ -96,11 +98,14 @@ export default function CompleteStudentModal() {
                                     <SelectGroup>
                                         {colleges.map((item) => {
                                             const fullText = `${item.code} - ${item.name}`;
+                                            const isDisabled =
+                                                !item.has_counselor;
 
                                             return (
                                                 <SelectItem
                                                     key={item.id}
                                                     value={item.id.toString()}
+                                                    disabled={isDisabled}
                                                 >
                                                     <TooltipProvider
                                                         delayDuration={200}
@@ -109,21 +114,31 @@ export default function CompleteStudentModal() {
                                                             <TooltipTrigger
                                                                 asChild
                                                             >
-                                                                <span className="block max-w-max truncate">
-                                                                    {fullText.length >
-                                                                    35
-                                                                        ? fullText.slice(
-                                                                              0,
-                                                                              35,
-                                                                          ) +
-                                                                          '...'
-                                                                        : fullText}
+                                                                <span className="flex w-full items-center justify-between gap-2">
+                                                                    <span className="block max-w-max truncate">
+                                                                        {fullText.length >
+                                                                        35
+                                                                            ? fullText.slice(
+                                                                                  0,
+                                                                                  35,
+                                                                              ) +
+                                                                              '...'
+                                                                            : fullText}
+                                                                    </span>
+
+                                                                    {isDisabled && (
+                                                                        <span className="text-xs text-muted-foreground italic">
+                                                                            Unavailable
+                                                                        </span>
+                                                                    )}
                                                                 </span>
                                                             </TooltipTrigger>
 
                                                             <TooltipContent>
                                                                 <p>
                                                                     {fullText}
+                                                                    {isDisabled &&
+                                                                        ' — no counselor currently available for this college'}
                                                                 </p>
                                                             </TooltipContent>
                                                         </Tooltip>

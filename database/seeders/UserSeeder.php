@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Models\College;
 use App\Models\User;
 use App\Models\UserCollege;
 use Illuminate\Database\Seeder;
@@ -16,30 +17,27 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 0; $i < 200; $i++) {
+        // for ($i = 0; $i < 200; $i++) {
 
-            $role = fake()->randomElement([
-                UserRole::STUDENT,
-                UserRole::COUNSELOR,
-            ]);
+        //     $role = fake()->randomElement([
+        //         UserRole::STUDENT,
+        //         UserRole::COUNSELOR,
+        //     ]);
 
-            $user = User::create([
-                'uuid' => (string) Str::uuid(),
-                'name' => fake()->name(),
-                'pseudonym' => fake()->userName(),
-                'email' => fake()->unique()->safeEmail(),
-                'password' => Hash::make('password123'),
-                'is_anonymous' => $role === UserRole::COUNSELOR,
-                'role' => $role,
-            ]);
+        //     $user = User::create([
+        //         'uuid' => (string) Str::uuid(),
+        //         'name' => fake()->name(),
+        //         'pseudonym' => fake()->userName(),
+        //         'email' => fake()->unique()->safeEmail(),
+        //         'password' => Hash::make('password123'),
+        //         'is_anonymous' => $role === UserRole::COUNSELOR,
+        //         'role' => $role,
+        //     ]);
 
-            UserCollege::create([
-                'user_id' => $user->id,
-                'college_id' => fake()->numberBetween(1, 8),
-            ]);
-        }
 
-        User::create([
+
+
+        $admin =  User::create([
             'uuid' => (string) Str::uuid(),
             'name' => 'Harold Cruz',
             'pseudonym' => 'Donny Pangilinan',
@@ -48,5 +46,42 @@ class UserSeeder extends Seeder
             'is_anonymous' => false,
             'role' => UserRole::ADMIN,
         ]);
+
+        // Existing college ids to randomly assign to counselors via the
+        // user_colleges pivot table. Falls back to skipping the pivot
+        // row if no colleges have been seeded yet.
+        $collegeIds = College::pluck('id');
+
+        for ($i = 1; $i <= 5; $i++) {
+            $counselor = User::create([
+                'uuid' => (string) Str::uuid(),
+                'name' => fake()->name(),
+                'pseudonym' => fake()->userName(),
+                'email' => "counselor{$i}@gmail.com",
+                'password' => Hash::make('password123'),
+                'is_anonymous' => true,
+                'role' => UserRole::COUNSELOR,
+            ]);
+
+            if ($collegeIds->isNotEmpty()) {
+                UserCollege::create([
+                    'user_id' => $counselor->id,
+                    'college_id' => $collegeIds->random(),
+                ]);
+            }
+        }
+
+        // Students with no assigned college — no UserCollege row created.
+        for ($i = 1; $i <= 2; $i++) {
+            User::create([
+                'uuid' => (string) Str::uuid(),
+                'name' => fake()->name(),
+                'pseudonym' => fake()->userName(),
+                'email' => "student{$i}@gmail.com",
+                'password' => Hash::make('password123'),
+                'is_anonymous' => false,
+                'role' => UserRole::STUDENT,
+            ]);
+        }
     }
 }

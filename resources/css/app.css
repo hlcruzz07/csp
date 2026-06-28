@@ -62,56 +62,56 @@
 :root {
     --radius: 0.625rem;
 
-    /* BASE */
-    --background: #f7fbfc;
-    --foreground: #112d4e;
+    /* BASE - warmer, softer background */
+    --background: #f0f6fb;
+    --foreground: #1a2f4a;
 
     --card: #ffffff;
-    --card-foreground: #112d4e;
+    --card-foreground: #1a2f4a;
 
     --popover: #ffffff;
-    --popover-foreground: #112d4e;
+    --popover-foreground: #1a2f4a;
 
-    /* PRIMARY (main action blue) */
-    --primary: #769fcd;
+    /* PRIMARY - slightly deeper for better contrast */
+    --primary: #4a80b8;
     --primary-foreground: #ffffff;
 
-    /* SECONDARY (soft UI blue) */
-    --secondary: #b9d7ea;
-    --secondary-foreground: #112d4e;
+    /* SECONDARY - softer, more distinct from muted */
+    --secondary: #cce0f0;
+    --secondary-foreground: #1a2f4a;
 
-    /* ACCENT (strong contrast blue) */
-    --accent: #3f72af;
+    /* ACCENT - strong, punchy */
+    --accent: #2c5f9e;
     --accent-foreground: #ffffff;
 
-    /* MUTED (surface/background tint) */
-    --muted: #d6e6f2;
-    --muted-foreground: #3f72af;
+    /* MUTED - warmer tint so it doesn't look like border */
+    --muted: #e4f0f8;
+    --muted-foreground: #5a7fa8;
 
     --destructive: #ef4444;
 
-    --border: #d6e6f2;
-    --input: #d6e6f2;
-    --ring: #769fcd;
+    /* BORDER/INPUT - subtle, not too blue */
+    --border: #c8dcea;
+    --input: #ddeaf4;
+    --ring: #4a80b8;
 
     /* CHART COLORS */
-    --chart-1: #769fcd;
-    --chart-2: #3f72af;
-    --chart-3: #b9d7ea;
-    --chart-4: #d6e6f2;
-    --chart-5: #112d4e;
+    --chart-1: #4a80b8;
+    --chart-2: #2c5f9e;
+    --chart-3: #cce0f0;
+    --chart-4: #e4f0f8;
+    --chart-5: #1a2f4a;
 
-    /* SIDEBAR */
-    --sidebar: #ffffff;
-    --sidebar-foreground: #112d4e;
-    --sidebar-primary: #769fcd;
+    /* SIDEBAR - slightly distinct from page background */
+    --sidebar: #e8f3fa;
+    --sidebar-foreground: #1a2f4a;
+    --sidebar-primary: #4a80b8;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #b9d7ea;
-    --sidebar-accent-foreground: #112d4e;
-    --sidebar-border: #d6e6f2;
-    --sidebar-ring: #769fcd;
+    --sidebar-accent: #cce0f0;
+    --sidebar-accent-foreground: #1a2f4a;
+    --sidebar-border: #c8dcea;
+    --sidebar-ring: #4a80b8;
 }
-
 .dark {
     --background: #0b1b2b;
     --foreground: #e2e8f0;

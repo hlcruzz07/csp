@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompleteStudentRequest;
 use App\Http\Requests\UpdateStudentProfileRequest;
 use App\Jobs\FindStudentCounselorJob;
+use App\Models\Category;
 use App\Models\College;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
@@ -21,12 +23,22 @@ class StudentController extends Controller
      */
     public function index()
     {
-        $colleges = College::all();
+        $colleges = College::query()
+            ->withExists([
+                'userColleges as has_counselor' => function ($query) {
+                    $query->whereHas('user', function ($q) {
+                        $q->where('role', UserRole::COUNSELOR->value);
+                    });
+                },
+            ])
+            ->get();
+
         $isCompleted = $this->studentRepo->isCompleted();
 
         return Inertia::render('student/dashboard', [
             'colleges' => $colleges,
             'isCompleted' => $isCompleted,
+            'categories' => Category::all(),
         ]);
     }
 

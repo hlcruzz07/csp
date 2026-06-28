@@ -3,10 +3,19 @@
 use App\Enums\UserRole;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CounselorController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\StudentController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect('/dashboard');
+    }
+
+    return Inertia::render('welcome');
+})->name('home');
 
 Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', fn() => redirect()->route('adminDashboard'));
@@ -19,24 +28,26 @@ Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->
 
     Route::get('/', fn() => redirect()->route('counselorDashboard'));
 
-    Route::get('/conversation', [CounselorController::class, 'index'])->name('counselorDashboard');
+    Route::get('/conversations', [CounselorController::class, 'index'])->name('counselorDashboard');
 });
 
 Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->group(function () {
 
     Route::get('/', fn() => redirect()->route('studentDashboard'));
 
-    Route::get('/dashboard', [StudentController::class, 'index'])->name('studentDashboard');
+    Route::get('/conversation', [StudentController::class, 'index'])->name('studentDashboard');
     Route::post('/complete', [StudentController::class, 'complete'])->name('studentComplete');
     Route::post('/updateProfile', [StudentController::class, 'updateProfile'])->name('studentUpdateProfile');
+});
+
+Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
+    Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
 
 Route::get('/dashboard', function () {
 
 
     $user = auth()->user();
-
-    dd($user);
 
     switch ($user->role->value) {
         case UserRole::ADMIN->value:
@@ -47,11 +58,10 @@ Route::get('/dashboard', function () {
 
         case UserRole::STUDENT->value:
             return redirect()->route('studentDashboard');
-
         default:
             return 'test';
     }
-})->middleware('auth');
+});
 
 Route::get('/debug-job', function () {
     app()->makeWith(\App\Jobs\FindStudentCounselorJob::class, [

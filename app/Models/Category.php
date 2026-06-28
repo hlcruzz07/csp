@@ -12,8 +12,8 @@ class Category extends Model
         'description'
     ];
 
-    public function conversation()
+    public function messages()
     {
-        return $this->belongsTo(Conversation::class, 'category_id');
+        return $this->hasMany(Message::class);
     }
 }
