@@ -63,14 +63,6 @@ Route::get('/dashboard', function () {
     }
 });
 
-Route::get('/debug-job', function () {
-    app()->makeWith(\App\Jobs\FindStudentCounselorJob::class, [
-        'studentId' => 1
-    ])->handle();
-
-    return 'job executed';
-});
-
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/api.php';
