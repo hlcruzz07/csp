@@ -40,7 +40,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { LogoutModal } from './LogoutModal';
 import AppearanceTabs from '@/components/appearance-tabs';
-export function StudentDrawer() {
+interface StudentDrawerProps {
+    onSave: () => void;
+}
+export function StudentDrawer({ onSave }: StudentDrawerProps) {
     const getInitials = useInitials();
     const { auth } = usePage<any>().props;
 
@@ -85,6 +88,8 @@ export function StudentDrawer() {
                     current_password: '',
                     new_password: '',
                 }));
+                onSave();
+                setOpenDrawer(false);
             },
             onError: (err) => {
                 handleErrors(err);
@@ -143,12 +148,15 @@ export function StudentDrawer() {
           : undefined;
 
     const [openLogout, setOpenLogout] = useState(false);
+    const [openDrawer, setOpenDrawer] = useState(false);
     return (
         <>
             <LogoutModal open={openLogout} setOpen={setOpenLogout} />
             <Drawer
+                open={openDrawer}
                 direction="right"
                 onOpenChange={(open) => {
+                    setOpenDrawer(open);
                     if (!open) {
                         onCancel();
                     }

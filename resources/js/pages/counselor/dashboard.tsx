@@ -5,41 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Message, Notification } from '@/types/entities';
+import { usePage } from '@inertiajs/react';
 import { MenuIcon } from 'lucide-react';
-
-const MESSAGES: Message[] = [
-    {
-        id: 1,
-        name: 'Maria Santos',
-        message: "Thank you po, I'll try the breathing exercise tonight.",
-        time: '2m ago',
-    },
-    {
-        id: 2,
-        name: 'John Carlo Dela Cruz',
-        message:
-            "I haven't been sleeping well this week because of the upcoming exams, can we talk later?",
-        time: '10m ago',
-    },
-    {
-        id: 3,
-        name: 'Angelica Reyes',
-        message: 'Okay sir, see you sa appointment tomorrow at 2pm.',
-        time: '1h ago',
-    },
-    {
-        id: 4,
-        name: 'Mark Anthony Villanueva',
-        message: 'Sorry for the late reply, may I reschedule our session?',
-        time: '3h ago',
-    },
-    {
-        id: 5,
-        name: 'Bea Fernandez',
-        message: "I'm feeling a bit better today, thank you for checking in.",
-        time: 'Yesterday',
-    },
-];
 
 const NOTIFICATIONS: Notification[] = [
     {
@@ -76,10 +43,23 @@ const NOTIFICATIONS: Notification[] = [
     },
 ];
 
+type PageProps = {
+    conversations: {
+        id: number;
+        uuid: string;
+        student: {
+            id: number;
+            name: string;
+        };
+        messages: Message[];
+    }[];
+};
+
 export default function Dashboard() {
     const isMobile = useIsMobile();
+    const { conversations } = usePage<PageProps>().props;
 
-    const sidebar = <ChatSidebar messages={MESSAGES} />;
+    const sidebar = <ChatSidebar conversations={conversations} />;
 
     return (
         <div className="flex h-screen overflow-hidden bg-secondary-foreground">

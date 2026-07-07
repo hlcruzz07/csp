@@ -7,21 +7,25 @@ use App\Events\MessageSent;
 use App\Models\Message;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateMessageRequest;
+use App\Repositories\MessageRepo;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 
 class MessageController extends Controller
 {
-    public function __construct() {}
+    public function __construct(protected MessageRepo $messageRepo, protected ImageCompressionService $imageCompressionService)
+    {
+    }
 
     public function suggest(Request $request)
     {
         set_time_limit(120);
 
         $request->validate([
-            'message'              => ['required', 'string', 'max:1000'],
-            'category'             => ['nullable', 'string'],
+            'message' => ['required', 'string', 'max:1000'],
+            'category' => ['nullable', 'string'],
             'category_description' => ['nullable', 'string'],
         ]);
 
@@ -58,44 +62,30 @@ class MessageController extends Controller
                 return response()->json($decoded);
             } catch (\Throwable $th) {
                 $lastError = $th;
-                if ($attempt < 3) sleep($attempt);
+                if ($attempt < 3)
+                    sleep($attempt);
             }
         }
 
         return response()->json(['error' => $lastError->getMessage()], 500);
     }
 
-    public function create(CreateMessageRequest $request, ImageCompressionService $imageCompressionService)
+    public function create(CreateMessageRequest $request)
     {
-        $attachmentPaths = [];
+        try {
 
-        if ($request->hasFile('attachments')) {
-            $results = $imageCompressionService->compressMany($request->file('attachments'));
+            $data = $request->all();
 
-            foreach ($results as $result) {
+            $message = $this->messageRepo->createMessage($data);
 
-                $attachmentPaths[] = $result['path'];
-            }
+            $message->load('sender', 'attachments', 'conversation');
+
+            broadcast(new MessageSent($message));
+            return redirect()->back();
+        } catch (\Throwable $th) {
+            Log::error('Error creating message: ' . $th->getMessage(), ['exception' => $th]);
+            return redirect()->back()->withErrors(['error' => 'Something went wrong while sending the message. Please try again.']);
         }
-
-        $message = Message::create([
-            'conversation_id' => auth()->user()->studentConversation->id,
-            'sender_id'       => auth()->id(),
-            'category_id'     => $request->category_id,
-            'content'         => $request->content ?? null,
-            'is_structured'   => $request->is_structured,
-            'status'          => 'sent',
-        ]);
-
-        if (!empty($attachmentPaths)) {
-            $message->attachments()->createMany(
-                array_map(fn($img) => ['file_url' => $img], $attachmentPaths)
-            );
-        }
-        $message->load('sender', 'attachments', 'conversation');
-
-        broadcast(new MessageSent($message));
-        return back();
     }
 
     public function store(Request $request)

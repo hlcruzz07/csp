@@ -32,7 +32,8 @@ class ImageCompressionService
     protected string $disk;
 
     /**
-     * Subfolder inside the disk to store compressed images.
+     * Default subfolder inside the disk to store compressed images.
+     * Can be overridden per-call via compress()/compressMany().
      */
     protected string $folder;
 
@@ -40,7 +41,7 @@ class ImageCompressionService
         int $quality = 75,
         int $pngCompression = 6,
         string $disk = 'public',
-        string $folder = 'compressed'
+        string $folder = 'attachments'
     ) {
         if (!extension_loaded('gd')) {
             throw new Exception('The GD extension is required but is not enabled on this server.');
@@ -56,6 +57,8 @@ class ImageCompressionService
      * Compress a single uploaded file and save it to disk.
      *
      * @param  UploadedFile  $file
+     * @param  string|null   $folder  Optional override for the destination folder.
+     *                                 Falls back to the constructor's default folder if null.
      * @return array{
      *     path: string,
      *     full_path: string,
@@ -67,8 +70,15 @@ class ImageCompressionService
      *
      * @throws Exception
      */
-    public function compress(UploadedFile $file): array
+    public function compress(UploadedFile $file, ?string $folder = null): array
     {
+        if (!$file->isValid() || !$file->getRealPath() || !is_readable($file->getRealPath())) {
+            throw new Exception(
+                'Uploaded file is invalid or unreadable: ' . ($file->getErrorMessage() ?: 'unknown upload error')
+            );
+        }
+
+        $mimeType = $file->getMimeType();
         $mimeType = $file->getMimeType();
         $originalSize = $file->getSize();
         $sourcePath = $file->getRealPath();
@@ -78,8 +88,10 @@ class ImageCompressionService
         // Preserve transparency for PNG/WEBP
         imagesavealpha($image, true);
 
+        $targetFolder = $folder !== null ? trim($folder, '/') : $this->folder;
+
         $filename = $this->generateFilename($file, $mimeType);
-        $relativePath = $this->folder . '/' . $filename;
+        $relativePath = $targetFolder . '/' . $filename;
 
         $diskPath = storage_path('app/public/' . $relativePath);
         $this->ensureDirectoryExists(dirname($diskPath));
@@ -108,15 +120,17 @@ class ImageCompressionService
      * Use this directly with $request->file('attachments').
      *
      * @param  UploadedFile[]  $files
+     * @param  string|null     $folder  Optional override for the destination folder,
+     *                                    applied to every file in this batch.
      * @return array[] List of result arrays, one per file (see compress()).
      */
-    public function compressMany(array $files): array
+    public function compressMany(array $files, ?string $folder = null): array
     {
         $results = [];
 
         foreach ($files as $file) {
             try {
-                $results[] = $this->compress($file);
+                $results[] = $this->compress($file, $folder);
             } catch (Exception $e) {
                 Log::warning('Image compression failed for one file: ' . $e->getMessage());
                 $results[] = [
@@ -139,6 +153,7 @@ class ImageCompressionService
             'image/png' => imagecreatefrompng($path),
             'image/webp' => imagecreatefromwebp($path),
             'image/gif' => imagecreatefromgif($path),
+            'image/bmp', 'image/x-ms-bmp' => imagecreatefrombmp($path),
             default => throw new Exception("Unsupported image type: {$mimeType}"),
         };
 
@@ -160,6 +175,7 @@ class ImageCompressionService
             'image/png' => imagepng($image, $destinationPath, $this->pngCompression),
             'image/webp' => imagewebp($image, $destinationPath, $this->quality),
             'image/gif' => imagegif($image, $destinationPath),
+            'image/bmp', 'image/x-ms-bmp' => imagebmp($image, $destinationPath),
             default => throw new Exception("Unsupported image type: {$mimeType}"),
         };
 
@@ -174,7 +190,6 @@ class ImageCompressionService
     protected function generateFilename(UploadedFile $file, ?string $mimeType): string
     {
         $extension = $file->getClientOriginalExtension() ?: $this->extensionFromMime($mimeType);
-
         return Str::uuid()->toString() . '.' . $extension;
     }
 
@@ -185,6 +200,7 @@ class ImageCompressionService
             'image/png' => 'png',
             'image/webp' => 'webp',
             'image/gif' => 'gif',
+            'image/bmp', 'image/x-ms-bmp' => 'bmp',
             default => 'jpg',
         };
     }

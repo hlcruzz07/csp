@@ -2,6 +2,8 @@
 
 use App\Enums\UserRole;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CounselorController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\StudentController;
@@ -16,6 +18,11 @@ Route::get('/', function () {
 
     return Inertia::render('welcome');
 })->name('home');
+
+Route::get('/auth/google', [GoogleController::class, 'redirect'])
+    ->name('googleLogin');
+
+Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', fn() => redirect()->route('adminDashboard'));
@@ -44,10 +51,15 @@ Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counsel
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
 
+Route::middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
+    Route::get('/conversation/{uuid}', [ConversationController::class, 'index'])->name('conversation');
+});
+
 Route::get('/dashboard', function () {
 
 
     $user = auth()->user();
+
 
     switch ($user->role->value) {
         case UserRole::ADMIN->value:

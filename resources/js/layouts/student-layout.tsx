@@ -68,7 +68,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         category_id: null as null | number,
         attachments: [] as File[],
         content: '',
-        is_structured: false,
+        is_structured: false as boolean,
     });
 
     const handleSend = (e: FormEvent) => {
@@ -313,8 +313,10 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                                         variant={'link'}
                                         size={'icon'}
                                         type="button"
-                                        disabled={data.attachments.length >= 5}
-                                        disabled={processing}
+                                        disabled={
+                                            processing ||
+                                            data.attachments.length >= 5
+                                        }
                                         className="cursor-pointer border p-0!"
                                         onClick={() =>
                                             document

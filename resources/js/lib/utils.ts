@@ -52,7 +52,8 @@ export const handleErrors = (errors: Record<string, string | string[]>) => {
     }
 };
 
-export const normalizeName = (name: string) => {
+export const normalizeName = (name?: string | null) => {
+    if (!name) return '';
     return name
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (char) => char.toUpperCase());

@@ -42,15 +42,15 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user()
                     ? $request->user()->load([
                         'assignedCollege',
-                        'studentConversation.counselor'
-
+                        'studentConversation.counselor',
+                        'counselorConversations.student'
                     ])
                     : null,
             ],
             'flash' => [
                 'toast' => fn() => $request->session()->get('toast'),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
 }

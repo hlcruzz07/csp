@@ -2,18 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
+use App\Models\Category;
+use App\Models\College;
 use App\Models\Conversation;
 use App\Http\Controllers\Controller;
+use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ConversationController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+    public function __construct(protected StudentRepo $studentRepo)
+    {
+    }
+
     public function index()
     {
-        //
+
     }
 
     /**

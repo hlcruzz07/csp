@@ -13,7 +13,16 @@ class CounselorController extends Controller
      */
     public function index()
     {
-        return Inertia::render('counselor/dashboard');
+        $conversations = auth()->user()->counselorConversations()->with([
+            'student',
+            'messages' => function ($query) {
+                $query->latest()->first();
+            }
+        ])->get();
+
+        return Inertia::render('counselor/dashboard', [
+            'conversations' => $conversations,
+        ]);
     }
 
     /**

@@ -19,9 +19,16 @@ export type UserProps = {
 };
 export interface Message {
     id: number;
-    name: string;
-    message: string;
-    time: string;
+    category_id: number;
+    content?: string;
+    is_structured: boolean;
+    sender_id: number;
+    status: 'sent' | 'seen' | 'responded';
+    created_at: string;
+    updated_at: string;
+    attachments?: Attachments[];
+    category?: Categories;
+    user?: UserProps;
 }
 
 export interface Notification {

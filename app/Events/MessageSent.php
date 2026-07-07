@@ -14,7 +14,9 @@ class MessageSent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Message $message) {}
+    public function __construct(public Message $message)
+    {
+    }
 
     public function broadcastOn(): array
     {
@@ -31,18 +33,9 @@ class MessageSent implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'message' => [
-                'id'              => $this->message->id,
-                'conversation_id' => $this->message->conversation_id,
-                'sender_id'       => $this->message->sender_id,
-                'category_id'     => $this->message->category_id,
-                'content'         => $this->message->content,
-                'is_structured'   => $this->message->is_structured,
-                'status'          => $this->message->status,
-                'sender'          => $this->message->sender,
-                'attachments'     => $this->message->attachments,
-                'created_at'      => $this->message->created_at,
-            ],
+            'message' => $this->message->load('category')->toArray(),
         ];
     }
+
+
 }

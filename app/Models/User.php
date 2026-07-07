@@ -80,4 +80,5 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasMany(Conversation::class, 'counselor_id');
     }
+
 }

@@ -4,20 +4,29 @@ import { SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ChatListItem } from './ChatListItem';
 import { FilterTabs } from './FilterTabs';
-import { Message } from '@/types/entities';
+import { Message, UserProps } from '@/types/entities';
+import { conversation } from '@/routes';
 
 type Filter = 'All' | 'Unread';
 
 interface ChatSidebarProps {
-    messages: Message[];
+    conversations: {
+        id: number;
+        uuid: string;
+        student: {
+            id: number;
+            name: string;
+        };
+        messages: Message[];
+    }[];
 }
 
-export function ChatSidebar({ messages }: ChatSidebarProps) {
+export function ChatSidebar({ conversations }: ChatSidebarProps) {
     const [filter, setFilter] = useState<Filter>('All');
     const [search, setSearch] = useState('');
 
-    const filtered = messages.filter((m) => {
-        const matchesSearch = m.name
+    const filtered = conversations.filter((c) => {
+        const matchesSearch = c.student.name
             .toLowerCase()
             .includes(search.toLowerCase());
         return matchesSearch;
@@ -48,12 +57,19 @@ export function ChatSidebar({ messages }: ChatSidebarProps) {
             </div>
 
             <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
-                {Array.from({ length: 10 }, (_, index) => (
-                    <div key={index}>
-                        {filtered.map((message) => (
-                            <ChatListItem key={message.id} message={message} />
-                        ))}
+                {filtered.length === 0 && (
+                    <div className="flex h-full flex-col items-center justify-center gap-2">
+                        <p className="text-sm text-muted-foreground">
+                            No conversations found.
+                        </p>
                     </div>
+                )}
+                {filtered.map((item) => (
+                    <ChatListItem
+                        key={item.id}
+                        message={item.messages[0] ?? null}
+                        sender={item.student as UserProps}
+                    />
                 ))}
             </div>
         </div>
