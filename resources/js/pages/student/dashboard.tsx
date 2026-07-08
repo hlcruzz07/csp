@@ -45,7 +45,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
-import { useForm, usePage } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -155,12 +155,18 @@ export default function Dashboard() {
                 const response = await apiService.get(checkConversation().url);
                 const hasConversation = response.data.hasConversation;
 
-                setHasConvo(hasConversation);
-
                 if (!hasConversation) {
+                    setHasConvo(false);
                     timeoutId = setTimeout(poll, 3000);
                     return;
                 }
+
+                // Refresh Inertia's shared props (auth.user.student_conversation)
+                // now that a match exists, so counselor info is actually populated.
+                router.reload({
+                    only: ['auth'],
+                    onSuccess: () => setHasConvo(true),
+                });
 
                 const cookie = document.cookie
                     .split('; ')
@@ -178,7 +184,6 @@ export default function Dashboard() {
 
         return () => clearTimeout(timeoutId);
     }, [isCompleted]);
-
     const loadMessages = async (page = 1) => {
         if (!conversation_id) return;
         if (isLoadingMessages || isLoadingOlderMessages) return;
