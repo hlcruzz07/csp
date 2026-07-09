@@ -88,6 +88,18 @@ export interface StudentConversation {
     counselor?: Counselor;
 }
 
+export interface Conversation {
+    id: number;
+    uuid: string;
+    student_id: number;
+    student: UserProps;
+    unread_count: number;
+    latest_message?: Message;
+    counselor_id: number;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface User {
     id: number;
     uuid: string;

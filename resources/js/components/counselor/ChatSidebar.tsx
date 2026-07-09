@@ -4,36 +4,40 @@ import { SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ChatListItem } from './ChatListItem';
 import { FilterTabs } from './FilterTabs';
-import { Message, UserProps } from '@/types/entities';
+import {
+    Conversation,
+    Message,
+    StudentConversation,
+    UserProps,
+} from '@/types/entities';
 import { conversation } from '@/routes';
 
 type Filter = 'All' | 'Unread';
 
 interface ChatSidebarProps {
-    conversations: {
-        id: number;
-        uuid: string;
-        student: {
-            id: number;
-            name: string;
-        };
-        messages: Message[];
-    }[];
+    conversations: Conversation[];
 }
 
 export function ChatSidebar({ conversations }: ChatSidebarProps) {
     const [filter, setFilter] = useState<Filter>('All');
     const [search, setSearch] = useState('');
-
     const filtered = conversations.filter((c) => {
-        const matchesSearch = c.student.name
+        const displayName = c.student?.is_anonymous
+            ? c.student?.pseudonym
+            : c.student?.name;
+
+        const matchesSearch = (displayName ?? '')
             .toLowerCase()
             .includes(search.toLowerCase());
-        return matchesSearch;
+
+        const matchesFilter =
+            filter === 'All' || (filter === 'Unread' && c.unread_count > 0);
+
+        return matchesSearch && matchesFilter;
     });
 
     return (
-        <div className="flex h-screen flex-col gap-3 border pb-3">
+        <div className="flex h-screen w-72 flex-col gap-3 pb-3">
             <div className="px-3 pt-3">
                 <Heading
                     title="Chats"
@@ -57,7 +61,7 @@ export function ChatSidebar({ conversations }: ChatSidebarProps) {
             </div>
 
             <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
-                {filtered.length === 0 && (
+                {filtered?.length === 0 && (
                     <div className="flex h-full flex-col items-center justify-center gap-2">
                         <p className="text-sm text-muted-foreground">
                             No conversations found.
@@ -67,8 +71,9 @@ export function ChatSidebar({ conversations }: ChatSidebarProps) {
                 {filtered.map((item) => (
                     <ChatListItem
                         key={item.id}
-                        message={item.messages[0] ?? null}
-                        sender={item.student as UserProps}
+                        message={item.latest_message as Message | null}
+                        sender={item.student}
+                        conversation={item as any}
                     />
                 ))}
             </div>

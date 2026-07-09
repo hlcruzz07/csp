@@ -9,26 +9,26 @@ use Illuminate\Http\Request;
 
 class ConversationApiController extends Controller
 {
-
-    public function messages(Request $request)
+    public function messages(Request $request, string $uuid)
     {
         $user = auth()->user();
+        $perPage = (int) $request->query('per_page', 20);
 
-        $conversation = $user->role === UserRole::COUNSELOR->value
-            ? $user->counselorConversation()->first()
-            : $user->studentConversation()->first();
+        $roleValue = $user->role instanceof UserRole ? $user->role->value : $user->role;
+
+        $conversation = $roleValue === UserRole::STUDENT->value
+            ? $user->studentConversation()->where('uuid', $uuid)->first()
+            : $user->counselorConversations()->where('uuid', $uuid)->first();
 
         if (!$conversation) {
             return response()->json([
                 'data' => [],
                 'current_page' => 1,
                 'last_page' => 1,
-                'per_page' => (int) $request->query('per_page', 20),
+                'per_page' => $perPage,
                 'total' => 0,
             ]);
         }
-
-        $perPage = (int) $request->query('per_page', 20);
 
         $paginated = Message::with(['sender', 'attachments', 'category'])
             ->where('conversation_id', $conversation->id)

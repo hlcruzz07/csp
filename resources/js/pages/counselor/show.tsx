@@ -1,9 +1,7 @@
-import CompleteStudentModal from './modal/CompleteStudentModal';
+import CounselorLayout from '@/layouts/counselor-layout';
+import { Categories, Conversation, UserProps } from '@/types/entities';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import apiService from '@/lib/api-service';
-import { Categories, UserProps } from '@/types/entities';
-import MatchingCounselorModal from './modal/MatchingCounselorModal';
-import WelcomeModal from './modal/WelcomeModal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,14 +15,14 @@ import {
 } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
-    checkConversation,
+    counselorResponse,
     fetchMessages,
     sendMessage,
     suggestMessage,
 } from '@/routes';
 import { EmptyState } from '@/components/counselor/EmptyState';
 import dayjs from 'dayjs';
-import { AttachmentsGrid } from './modal/AttachementsGrid';
+import { AttachmentsGrid } from '@/pages/student/modal/AttachementsGrid';
 import {
     Attachment,
     AttachmentAction,
@@ -36,34 +34,35 @@ import {
     AttachmentTitle,
 } from '@/components/ui/attachment';
 import {
+    Briefcase,
     FileIcon,
     FilePlus,
-    FilePlus2Icon,
     FileText,
+    Heart,
     Grid2X2Plus,
     ImageIcon,
-    ImagePlusIcon,
     Music,
     Paperclip,
     SendHorizontal,
     Sparkles,
     Tag,
     XIcon,
+    Zap,
 } from 'lucide-react';
 import InputEmoji from 'react-input-emoji';
-import { DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
-import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
 type Message = {
     id: number;
     conversation_id: number;
@@ -84,29 +83,30 @@ type Suggestion = {
 };
 
 type PageProps = {
-    isCompleted: boolean;
-    auth: {
-        user: UserProps;
-    };
-    categories: Categories[];
+    conversation: Conversation;
+    auth: { user: UserProps };
+    // categories: Categories[];
     messages: Message[];
 };
 
-export default function Dashboard() {
+CounselorConversationShow.layout = (page: React.ReactNode) => (
+    <CounselorLayout>{page}</CounselorLayout>
+);
+
+export default function CounselorConversationShow() {
     const {
-        isCompleted,
+        conversation,
         auth,
-        categories,
+        // categories,
         messages: initialMessages,
     } = usePage<PageProps>().props;
 
     const getInitials = useInitials();
     const isMobile = useIsMobile();
-    const counselor = auth.user?.student_conversation?.counselor ?? null;
+    const student = conversation.student;
+    const conversation_id = conversation.uuid;
 
-    // ---- Conversation / message list state ----
-    const [hasConvo, setHasConvo] = useState(!!auth.user.student_conversation);
-    const [isOpenWelcome, setOpenWelcome] = useState(false);
+    // ---- Message list state ----
     const [messages, setMessages] = useState<Message[]>(initialMessages ?? []);
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
@@ -115,13 +115,7 @@ export default function Dashboard() {
     const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
 
     const containerRef = useRef<HTMLDivElement | null>(null);
-
-    // True while we want the view to auto-stick to the bottom
-    // (i.e. the user hasn't scrolled up to read older messages).
     const shouldStickToBottomRef = useRef(true);
-
-    // True while we're restoring scroll position after loading older
-    // messages — blocks the ResizeObserver from yanking us to bottom.
     const skipAutoScrollRef = useRef(false);
 
     // ---- Composer / AI suggestion state ----
@@ -131,10 +125,10 @@ export default function Dashboard() {
 
     const formRef = useRef<HTMLFormElement>(null);
 
-    const { data, setData, post, processing, reset, progress } = useForm({
+    const { data, setData, post, processing, reset } = useForm({
         category_id: null as null | number,
+        conversation_uuid: conversation.uuid,
         attachments: [] as File[],
-        conversation_uuid: auth.user.student_conversation?.uuid,
         content: '',
         is_structured: false as boolean,
     });
@@ -157,51 +151,6 @@ export default function Dashboard() {
             newScrollHeight - previousScrollHeight + previousScrollTop;
     };
 
-    // Use the UUID consistently — this is what the channel name and
-    // broadcasting/auth check both key off now.
-    const conversation_id = auth.user.student_conversation?.uuid;
-
-    useEffect(() => {
-        if (!isCompleted) return;
-
-        let timeoutId: ReturnType<typeof setTimeout>;
-
-        const poll = async () => {
-            try {
-                const response = await apiService.get(checkConversation().url);
-                const hasConversation = response.data.hasConversation;
-
-                if (!hasConversation) {
-                    setHasConvo(false);
-                    timeoutId = setTimeout(poll, 3000);
-                    return;
-                }
-
-                setHasConvo(true);
-
-                // Refresh Inertia's shared props (auth.user.student_conversation)
-                // now that a match exists, so counselor info is actually populated.
-                router.reload({
-                    only: ['auth'],
-                    onSuccess: () => setHasConvo(true),
-                });
-
-                const cookie = document.cookie
-                    .split('; ')
-                    .find((row) => row.startsWith('csp_welcome_no_show='))
-                    ?.split('=')[1];
-
-                if (!cookie) setOpenWelcome(true);
-            } catch (error) {
-                console.error(error);
-                timeoutId = setTimeout(poll, 3000);
-            }
-        };
-
-        poll();
-
-        return () => clearTimeout(timeoutId);
-    }, [isCompleted]);
     const loadMessages = async (page = 1) => {
         if (!conversation_id) return;
         if (isLoadingMessages || isLoadingOlderMessages) return;
@@ -213,19 +162,20 @@ export default function Dashboard() {
         if (page === 1) {
             setIsLoadingMessages(true);
         } else {
-            skipAutoScrollRef.current = true; // block auto-scroll for this load
+            skipAutoScrollRef.current = true;
             setIsLoadingOlderMessages(true);
         }
 
         try {
+            // NOTE: for the counselor view we need to tell the backend which
+            // conversation to pull from — swap this for whatever your
+            // Wayfinder route signature actually looks like.
             const response = await apiService.get(
                 fetchMessages(conversation_id, {
                     query: { page, per_page: 20 },
                 }).url,
             );
-
             const payload = response.data;
-
             const fetchedMessages = (payload.data as Message[]).reverse();
 
             setMessages((existingMessages) =>
@@ -249,7 +199,6 @@ export default function Dashboard() {
                             previousScrollHeight,
                             previousScrollTop,
                         );
-                        // release the block only after position is restored
                         skipAutoScrollRef.current = false;
                     }),
                 );
@@ -264,11 +213,9 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        if (!isCompleted || !conversation_id) return;
-
         loadMessages(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [conversation_id, isCompleted]);
+    }, [conversation_id]);
 
     useEffect(() => {
         if (skipAutoScrollRef.current) return;
@@ -281,8 +228,6 @@ export default function Dashboard() {
         const node = containerRef.current;
         if (!node) return;
 
-        // Track whether the user is near the bottom so we know whether
-        // to keep auto-sticking them there as new content streams in.
         const isNearBottom =
             node.scrollHeight - node.scrollTop - node.clientHeight < 120;
         shouldStickToBottomRef.current = isNearBottom;
@@ -294,7 +239,7 @@ export default function Dashboard() {
         }
     };
 
-    // Listen for broadcast events
+    // Listen for broadcast events on this specific conversation
     useEffect(() => {
         if (!conversation_id) return;
 
@@ -308,7 +253,12 @@ export default function Dashboard() {
 
         channel.listenToAll((event: string, data: any) => {
             if (event.endsWith('MessageSent') || event === 'MessageSent') {
-                setMessages((prevMessages) => [...prevMessages, data.message]);
+                setMessages((prevMessages) => {
+                    if (prevMessages.some((m) => m.id === data.message.id)) {
+                        return prevMessages; // already have it, skip
+                    }
+                    return [...prevMessages, data.message];
+                });
             }
         });
 
@@ -325,16 +275,14 @@ export default function Dashboard() {
         post(sendMessage().url, {
             forceFormData: true,
             preserveScroll: true,
+            preserveState: true, // <-- don't rebuild messages from fresh props
             onError: (err) => {
                 console.error('Error sending message', err);
                 handleErrors(err);
             },
             onSuccess: () => {
                 reset();
-                // keep auto scroll enabled
                 shouldStickToBottomRef.current = true;
-
-                // wait until the DOM updates
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         setScrollBottom();
@@ -344,24 +292,30 @@ export default function Dashboard() {
         });
     };
 
-    const selectedCategoryName = categories.find(
-        (item) => item.id === data.category_id,
-    )?.name;
+    // const selectedCategoryName = categories?.find(
+    //     (item) => item.id === data.category_id,
+    // )?.name;
 
-    const selectedCategoryDesc = categories.find(
-        (item) => item.id === data.category_id,
-    )?.description;
+    // const selectedCategoryDesc = categories?.find(
+    //     (item) => item.id === data.category_id,
+    // )?.description;
 
     const suggest = async () => {
         if (isSuggesting) return;
         setIsSuggesting(true);
         try {
             const { data: responseData } = await apiService.post(
-                suggestMessage().url,
+                counselorResponse().url,
                 {
-                    message: data.content,
-                    category: selectedCategoryName ?? null,
-                    category_description: selectedCategoryDesc ?? null,
+                    studentMessages: messages
+                        .filter((m) => m.sender_id === auth.user.id)
+                        .sort(
+                            (a, b) =>
+                                new Date(a.created_at).getTime() -
+                                new Date(b.created_at).getTime(),
+                        )
+                        .slice(-5)
+                        .map((m) => m.content),
                 },
             );
             setSuggestMessages(responseData.suggestions ?? []);
@@ -371,14 +325,15 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        if (!openSuggestAi || !data.content.trim()) return;
+        if (!openSuggestAi) return;
 
         const timeout = setTimeout(() => {
             suggest();
         }, 1500);
 
         return () => clearTimeout(timeout);
-    }, [openSuggestAi, data.content, data.category_id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openSuggestAi]);
 
     const handleAttachmentChange = (
         e: React.ChangeEvent<HTMLInputElement>,
@@ -410,41 +365,84 @@ export default function Dashboard() {
         setData('attachments', [...currentFiles, ...newFiles]);
     };
 
-    if (!isCompleted) return <CompleteStudentModal />;
-    if (!hasConvo) return <MatchingCounselorModal />;
+    const suggestionStyles: Record<
+        string,
+        { icon: typeof Briefcase; color: string; bg: string; border: string }
+    > = {
+        professional: {
+            icon: Briefcase,
+            color: 'text-blue-600 dark:text-blue-400',
+            bg: 'bg-blue-50/60 dark:bg-blue-950/20',
+            border: 'hover:border-blue-400',
+        },
+        empathetic: {
+            icon: Heart,
+            color: 'text-rose-600 dark:text-rose-400',
+            bg: 'bg-rose-50/60 dark:bg-rose-950/20',
+            border: 'hover:border-rose-400',
+        },
+        brief: {
+            icon: Zap,
+            color: 'text-amber-600 dark:text-amber-400',
+            bg: 'bg-amber-50/60 dark:bg-amber-950/20',
+            border: 'hover:border-amber-400',
+        },
+    };
+
+    const getSuggestionStyle = (title: string) => {
+        const key = title.toLowerCase();
+        return (
+            suggestionStyles[key] ?? {
+                icon: Sparkles,
+                color: 'text-primary',
+                bg: 'bg-muted/40',
+                border: 'hover:border-primary',
+            }
+        );
+    };
 
     return (
-        <div className="flex h-screen flex-col overflow-hidden">
-            <WelcomeModal open={isOpenWelcome} setOpen={setOpenWelcome} />
-
+        <div className="flex h-full flex-col overflow-hidden bg-background">
             {/* Header */}
             <div className="flex items-center justify-between p-3">
                 <div className="flex cursor-pointer items-center gap-2">
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
-                            src={counselor?.avatar || undefined}
-                            alt={normalizeName(counselor?.name || '')}
+                            src={
+                                !student?.is_anonymous && student?.avatar
+                                    ? `/storage/${student.avatar}`
+                                    : '/default.webp'
+                            }
+                            className="object-cover"
+                            alt={normalizeName(student?.name || '')}
                         />
                         <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black md:text-sm dark:bg-neutral-700 dark:text-white">
                             {getInitials(
-                                normalizeName(counselor?.name || '') ?? '',
+                                normalizeName(
+                                    !student?.is_anonymous
+                                        ? student.name
+                                        : student?.pseudonym,
+                                ) ?? '',
                             )}
                         </AvatarFallback>
                     </Avatar>
 
                     <div className="flex flex-col text-sm md:text-base">
                         <h1 className="font-semibold">
-                            {normalizeName(counselor?.name || '')}
+                            {normalizeName(
+                                !student?.is_anonymous
+                                    ? student.name
+                                    : student?.pseudonym,
+                            )}
                         </h1>
                         <small className="capitalized text-xs text-muted-foreground md:text-sm">
-                            {normalizeName(counselor?.role || '')} -{' '}
-                            {auth.user?.assigned_college?.name}{' '}
-                            {`(${auth.user?.assigned_college?.code})`}
+                            {student?.assigned_college?.name}{' '}
+                            {student?.assigned_college?.code
+                                ? `(${student.assigned_college.code})`
+                                : ''}
                         </small>
                     </div>
                 </div>
-
-                <StudentDrawer onSave={() => loadMessages(1)} />
             </div>
 
             {/* Messages */}
@@ -454,7 +452,7 @@ export default function Dashboard() {
                 onScroll={handleScroll}
             >
                 {messages.length > 0 ? (
-                    [...messages].map((message, index) => {
+                    messages.map((message, index) => {
                         const isMine = message.sender_id === auth.user.id;
 
                         return (
@@ -519,7 +517,9 @@ export default function Dashboard() {
                                                             }`}
                                                         >
                                                             {message.is_structured && (
-                                                                <span className="absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+                                                                <span
+                                                                    className={`absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow`}
+                                                                >
                                                                     <Sparkles className="h-3 w-3" />
                                                                     AI Suggested
                                                                 </span>
@@ -548,18 +548,33 @@ export default function Dashboard() {
                                                                     message.content
                                                                 }
                                                             </p>
-                                                            {message.category && (
-                                                                <div className="mt-1 flex justify-end">
-                                                                    <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
-                                                                        <Tag className="h-3 w-3" />
-                                                                        {
-                                                                            message
-                                                                                .category
-                                                                                .name
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            )}
+
+                                                            {message.category &&
+                                                                !isMine && (
+                                                                    <div className="mt-1 flex justify-end">
+                                                                        <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
+                                                                            <Tag className="h-3 w-3" />
+                                                                            {
+                                                                                message
+                                                                                    .category
+                                                                                    .name
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                            {isMine &&
+                                                                index ===
+                                                                    messages.length -
+                                                                        1 && (
+                                                                    <div className="mt-1 flex items-center justify-end gap-2">
+                                                                        <small className="text-xs text-muted-foreground">
+                                                                            {
+                                                                                message.status
+                                                                            }
+                                                                        </small>
+                                                                    </div>
+                                                                )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -598,8 +613,7 @@ export default function Dashboard() {
                 onSubmit={handleSend}
                 className="relative space-y-3 p-3"
             >
-                {/* Category Badge */}
-                {data.category_id && (
+                {/* {data.category_id && (
                     <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 p-3">
                         <span className="text-xs text-muted-foreground">
                             Message Category:
@@ -611,7 +625,7 @@ export default function Dashboard() {
                             {selectedCategoryDesc}
                         </span>
                     </div>
-                )}
+                )} */}
 
                 {data.attachments.length > 0 && (
                     <AttachmentGroup className="flex flex-wrap items-start gap-2">
@@ -697,7 +711,6 @@ export default function Dashboard() {
                 )}
 
                 <div className="flex flex-col gap-2">
-                    {/* AI Suggestions Panel */}
                     {openSuggestAi && (
                         <div className="flex flex-col gap-2">
                             {isSuggesting ? (
@@ -718,68 +731,69 @@ export default function Dashboard() {
                                         </span>
                                     </span>
                                 </div>
-                            ) : suggestMessages.length > 0 ? (
-                                <>
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <Sparkles className="size-3 text-primary" />
-                                        <span>
-                                            AI Suggestions — Click to Use
-                                        </span>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
-                                        {suggestMessages.map((item, index) => (
-                                            <button
-                                                key={index}
-                                                type="button"
-                                                onClick={() => {
-                                                    setData(
-                                                        'content',
-                                                        item.message,
-                                                    );
-                                                    setSuggestMessages([]);
-                                                    setOpenSuggestAi(false);
-                                                    setData(
-                                                        'is_structured',
-                                                        true,
-                                                    );
-                                                }}
-                                                className="group flex cursor-pointer flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-left transition-colors hover:border-primary hover:bg-primary/5 lg:w-[calc(33.333%-0.5rem)]"
-                                            >
-                                                <span className="flex items-center gap-1 text-sm font-semibold text-primary">
-                                                    <Sparkles className="size-3" />
-                                                    {item.title}
-                                                </span>
-                                                <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                                                    {item.message}
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : data.content.trim() ? (
-                                <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground">
-                                    <Sparkles className="size-3" />
-                                    <span>
-                                        Type a bit more to get suggestions...
-                                    </span>
-                                </div>
                             ) : (
-                                <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground">
-                                    <Sparkles className="size-3" />
-                                    <span>
-                                        Start typing to get AI suggestions
-                                    </span>
-                                </div>
+                                suggestMessages.length > 0 && (
+                                    <>
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Sparkles className="size-3 text-primary" />
+                                            <span>
+                                                AI Suggestions — Click to Use
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
+                                            {suggestMessages.map(
+                                                (item, index) => {
+                                                    const style =
+                                                        getSuggestionStyle(
+                                                            item.title,
+                                                        );
+                                                    const Icon = style.icon;
+
+                                                    return (
+                                                        <button
+                                                            key={index}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setData(
+                                                                    'content',
+                                                                    item.message,
+                                                                );
+                                                                setSuggestMessages(
+                                                                    [],
+                                                                );
+                                                                setOpenSuggestAi(
+                                                                    false,
+                                                                );
+                                                                setData(
+                                                                    'is_structured',
+                                                                    true,
+                                                                );
+                                                            }}
+                                                            className={`group flex cursor-pointer flex-col gap-1.5 rounded-lg border p-3 text-left transition-colors lg:w-[calc(33.333%-0.5rem)] ${style.bg} ${style.border}`}
+                                                        >
+                                                            <span
+                                                                className={`flex items-center gap-1.5 text-sm font-semibold ${style.color}`}
+                                                            >
+                                                                <Icon className="size-3.5" />
+                                                                {item.title}
+                                                            </span>
+                                                            <span className="text-sm text-muted-foreground group-hover:text-foreground">
+                                                                {item.message}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                },
+                                            )}
+                                        </div>
+                                    </>
+                                )
                             )}
                         </div>
                     )}
 
-                    {/* Input Row */}
                     <div className="flex grow items-center gap-2">
                         <div className="flex items-center gap-1.5">
-                            {/* Image Upload */}
-
                             <Tooltip>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -873,7 +887,6 @@ export default function Dashboard() {
                                 </TooltipContent>
                             </Tooltip>
 
-                            {/* Hidden inputs — one per type, so each opens the OS picker filtered correctly */}
                             <Input
                                 type="file"
                                 hidden
@@ -899,8 +912,7 @@ export default function Dashboard() {
                                 onChange={(e) => handleAttachmentChange(e)}
                             />
 
-                            {/* Category Selector */}
-                            <Tooltip>
+                            {/* <Tooltip>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <TooltipTrigger asChild>
@@ -920,7 +932,7 @@ export default function Dashboard() {
                                                     className="absolute -top-1 -right-1 z-10 flex h-5 min-w-5 animate-pulse items-center justify-center rounded-full border-none! bg-red-500 px-1 text-xs leading-none"
                                                     variant={'outline'}
                                                 >
-                                                    {categories.length}
+                                                    {categories?.length}
                                                 </Badge>
                                             </Button>
                                         </TooltipTrigger>
@@ -958,9 +970,8 @@ export default function Dashboard() {
                                 <TooltipContent side="bottom">
                                     <p>Select Categories</p>
                                 </TooltipContent>
-                            </Tooltip>
+                            </Tooltip> */}
 
-                            {/* AI Toggle */}
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -968,7 +979,12 @@ export default function Dashboard() {
                                         size="icon"
                                         type="button"
                                         onClick={() =>
-                                            setOpenSuggestAi((prev) => !prev)
+                                            setOpenSuggestAi((prev) => {
+                                                if (prev) {
+                                                    setSuggestMessages([]);
+                                                }
+                                                return !prev;
+                                            })
                                         }
                                         disabled={processing}
                                         className={`composer-icon-btn size-10 shrink-0 cursor-pointer rounded-full ${
@@ -1015,11 +1031,7 @@ export default function Dashboard() {
                         <Button
                             type="submit"
                             className={`${!isMobile ? 'w-28' : 'size-10'} shrink-0 cursor-pointer rounded-full`}
-                            disabled={
-                                processing ||
-                                (!data.content.trim() &&
-                                    data.attachments.length === 0)
-                            }
+                            disabled={processing}
                         >
                             {processing ? (
                                 <>

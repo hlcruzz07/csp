@@ -1,0 +1,11 @@
+
+Change Config in php.ini for file uploads
+
+upload_max_filesize = 10M
+post_max_size = 60M
+max_file_uploads = 20
+memory_limit = 256M
+
+COMMANDS NEED TO RUN:
+
+php artisan reverb:start
