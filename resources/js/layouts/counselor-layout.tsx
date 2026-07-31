@@ -76,12 +76,7 @@ export default function CounselorLayout({
                 <div className="flex items-center justify-end rounded-none bg-background p-3 md:rounded-lg">
                     <div className="flex items-center gap-4">
                         <NotificationDropdown notifications={NOTIFICATIONS} />
-                        <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
-                            <AvatarImage src="" alt="User avatar" />
-                            <AvatarFallback className="rounded-lg bg-neutral-200 text-sm text-black sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
-                                JD
-                            </AvatarFallback>
-                        </Avatar>
+
                         <StudentDrawer />
                     </div>
                 </div>

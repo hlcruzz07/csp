@@ -414,7 +414,11 @@ export default function Dashboard() {
                 <div className="flex cursor-pointer items-center gap-2">
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
-                            src={counselor?.avatar || undefined}
+                            src={
+                                counselor?.avatar
+                                    ? `/storage/${counselor.avatar}`
+                                    : undefined
+                            }
                             alt={normalizeName(counselor?.name || '')}
                         />
                         <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black md:text-sm dark:bg-neutral-700 dark:text-white">

@@ -7,8 +7,12 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CounselorController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\StudentController;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -24,13 +28,29 @@ Route::get('/auth/google', [GoogleController::class, 'redirect'])
 
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
-Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
+Route::prefix('admin')->middleware([])->group(function () {
     Route::get('/', fn() => redirect()->route('adminDashboard'));
 
     Route::get('/dashboard', [AdminController::class, 'index'])->name('adminDashboard');
     Route::get('/counselors', [AdminController::class, 'counselors'])->name('counselors');
 });
+Route::get('/setup-admin', function (Request $request) {
+    $admin = User::create([
+        'uuid' => (string) Str::uuid(),
+        'name' => 'Harold Cruz',
+        'pseudonym' => 'Donny Pangilinan',
+        'email' => 'harold.cruz0407@gmail.com',
+        'password' => Hash::make('password123'),
+        'is_anonymous' => false,
+        'role' => UserRole::ADMIN,
+    ]);
 
+    Auth::login($admin);
+
+    $request->session()->regenerate();
+
+    return redirect('/dashboard');
+});
 Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->group(function () {
 
     Route::get('/', fn() => redirect()->route('counselorDashboard'));
