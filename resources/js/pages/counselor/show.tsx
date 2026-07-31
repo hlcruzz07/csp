@@ -46,6 +46,7 @@ import {
     SendHorizontal,
     Sparkles,
     Tag,
+    Video,
     XIcon,
     Zap,
 } from 'lucide-react';
@@ -62,6 +63,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import SendingMessageDialog from '@/components/SendingMessage';
 
 type Message = {
     id: number;
@@ -125,7 +127,7 @@ export default function CounselorConversationShow() {
 
     const formRef = useRef<HTMLFormElement>(null);
 
-    const { data, setData, post, processing, reset } = useForm({
+    const { data, setData, post, processing, reset, progress } = useForm({
         category_id: null as null | number,
         conversation_uuid: conversation.uuid,
         attachments: [] as File[],
@@ -308,7 +310,7 @@ export default function CounselorConversationShow() {
                 counselorResponse().url,
                 {
                     studentMessages: messages
-                        .filter((m) => m.sender_id === auth.user.id)
+                        .filter((m) => m.sender_id !== auth.user.id)
                         .sort(
                             (a, b) =>
                                 new Date(a.created_at).getTime() -
@@ -404,6 +406,9 @@ export default function CounselorConversationShow() {
     return (
         <div className="flex h-full flex-col overflow-hidden bg-background">
             {/* Header */}
+            {data.attachments.length > 0 && (
+                <SendingMessageDialog open={processing} progress={progress} />
+            )}
             <div className="flex items-center justify-between p-3">
                 <div className="flex cursor-pointer items-center gap-2">
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
@@ -455,6 +460,14 @@ export default function CounselorConversationShow() {
                     messages.map((message, index) => {
                         const isMine = message.sender_id === auth.user.id;
 
+                        // Anonymity now applies universally — even counselors see the default
+                        // avatar and "Anonymous" label for anonymous students.
+                        const isSenderAnonymous =
+                            message.sender?.is_anonymous === true;
+                        const shouldShowAvatar = !isSenderAnonymous;
+                        const displayName = isSenderAnonymous
+                            ? 'Anonymous'
+                            : normalizeName(message.sender?.name);
                         return (
                             <div
                                 key={index}
@@ -463,22 +476,16 @@ export default function CounselorConversationShow() {
                                 <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
                                     <AvatarImage
                                         src={
-                                            !message.sender?.is_anonymous &&
+                                            shouldShowAvatar &&
                                             message.sender?.avatar
                                                 ? `/storage/${message.sender.avatar}`
                                                 : '/default.webp'
                                         }
-                                        alt={normalizeName(
-                                            message.sender?.name,
-                                        )}
+                                        alt={displayName}
                                         className="object-cover"
                                     />
                                     <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black shadow-md sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
-                                        {getInitials(
-                                            normalizeName(
-                                                message.sender?.name,
-                                            ) ?? '',
-                                        )}
+                                        {getInitials(displayName ?? '')}
                                     </AvatarFallback>
                                 </Avatar>
 
@@ -487,13 +494,9 @@ export default function CounselorConversationShow() {
                                         className={`flex items-center text-xs sm:text-sm`}
                                     >
                                         <small className="text-xs text-foreground/80 sm:text-sm">
-                                            {!isMine &&
-                                                normalizeName(
-                                                    message.sender?.name,
-                                                )}
+                                            {!isMine && displayName}
                                         </small>
                                     </div>
-
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div
@@ -508,7 +511,9 @@ export default function CounselorConversationShow() {
                                                     />
                                                 )}
                                                 {message.content && (
-                                                    <div className="flex justify-end">
+                                                    <div
+                                                        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                    >
                                                         <div
                                                             className={`relative max-w-full ${
                                                                 message.is_structured
@@ -634,15 +639,18 @@ export default function CounselorConversationShow() {
 
                             const isImage = item.type.startsWith('image/');
                             const isAudio = item.type.startsWith('audio/');
+                            const isVideo = item.type.startsWith('video/');
                             const isPdf = item.type === 'application/pdf';
 
                             const kindLabel = isPdf
                                 ? 'PDF'
-                                : isAudio
-                                  ? 'Audio'
-                                  : isImage
-                                    ? 'Image'
-                                    : 'File';
+                                : isVideo
+                                  ? 'Video'
+                                  : isAudio
+                                    ? 'Audio'
+                                    : isImage
+                                      ? 'Image'
+                                      : 'File';
 
                             const sizeLabel = `${(
                                 item.size /
@@ -658,6 +666,14 @@ export default function CounselorConversationShow() {
                                                 src={url}
                                                 alt={item.name}
                                                 className="h-full w-full object-cover"
+                                            />
+                                        </AttachmentMedia>
+                                    ) : isVideo ? (
+                                        <AttachmentMedia variant="image">
+                                            <video
+                                                src={url}
+                                                className="h-full w-full object-cover"
+                                                muted
                                             />
                                         </AttachmentMedia>
                                     ) : (
@@ -857,6 +873,20 @@ export default function CounselorConversationShow() {
                                                 e.preventDefault();
                                                 document
                                                     .getElementById(
+                                                        'attachments-video',
+                                                    )
+                                                    ?.click();
+                                            }}
+                                        >
+                                            <Video className="mr-2 size-4" />
+                                            Videos
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            className="cursor-pointer"
+                                            onSelect={(e) => {
+                                                e.preventDefault();
+                                                document
+                                                    .getElementById(
                                                         'attachments-audio',
                                                     )
                                                     ?.click();
@@ -894,6 +924,14 @@ export default function CounselorConversationShow() {
                                 accept=".jpg,.png,.jpeg,.webp"
                                 multiple
                                 onChange={(e) => handleAttachmentChange(e)}
+                            />
+                            <Input
+                                type="file"
+                                hidden
+                                id="attachments-video"
+                                accept=".mp4,.mov,.webm,.mkv,.avi,.m4v"
+                                multiple
+                                onChange={(e) => handleAttachmentChange(e, 50)}
                             />
                             <Input
                                 type="file"

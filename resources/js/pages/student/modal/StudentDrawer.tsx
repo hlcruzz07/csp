@@ -34,18 +34,19 @@ import ManagePasskeys from '@/components/manage-passkeys';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormEvent, useRef, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
-import { studentUpdateProfile } from '@/routes';
+import { counselorUpdate, studentUpdateProfile } from '@/routes';
 import PasswordInput from '@/components/password-input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { LogoutModal } from './LogoutModal';
 import AppearanceTabs from '@/components/appearance-tabs';
 interface StudentDrawerProps {
-    onSave: () => void;
+    onSave?: () => void;
 }
 export function StudentDrawer({ onSave }: StudentDrawerProps) {
     const getInitials = useInitials();
     const { auth } = usePage<any>().props;
+    const isStudent = auth.user.role === 'student';
 
     const formRef = useRef<HTMLFormElement>(null);
     const defaultValues = {
@@ -79,7 +80,28 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
 
         if (processing) return;
 
-        post(studentUpdateProfile().url, {
+        if (isStudent) {
+            post(studentUpdateProfile().url, {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setData((data) => ({
+                        ...data,
+                        current_password: '',
+                        new_password: '',
+                    }));
+                    if (onSave) onSave;
+                    setOpenDrawer(false);
+                },
+                onError: (err) => {
+                    handleErrors(err);
+                },
+            });
+
+            return;
+        }
+
+        post(counselorUpdate().url, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -88,7 +110,7 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
                     current_password: '',
                     new_password: '',
                 }));
-                onSave();
+                if (onSave) onSave;
                 setOpenDrawer(false);
             },
             onError: (err) => {
@@ -149,6 +171,7 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
 
     const [openLogout, setOpenLogout] = useState(false);
     const [openDrawer, setOpenDrawer] = useState(false);
+
     return (
         <>
             <LogoutModal open={openLogout} setOpen={setOpenLogout} />
@@ -235,52 +258,56 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
                                     className="truncate"
                                 />
                             </div>
-                            <div className="grid gap-2">
-                                <Label
-                                    htmlFor="pseudonym"
-                                    className="flex items-center gap-1"
-                                >
-                                    Pseudonym
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                size="icon"
-                                                className="size-5"
-                                                variant="secondary"
-                                                type="button"
+                            {isStudent && (
+                                <div className="grid gap-2">
+                                    <Label
+                                        htmlFor="pseudonym"
+                                        className="flex items-center gap-1"
+                                    >
+                                        Pseudonym
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="icon"
+                                                    className="size-5"
+                                                    variant="secondary"
+                                                    type="button"
+                                                >
+                                                    <InfoIcon className="size-3" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent
+                                                align="end"
+                                                className="max-w-xs"
                                             >
-                                                <InfoIcon className="size-3" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent
-                                            align="end"
-                                            className="max-w-xs"
-                                        >
-                                            <p>
-                                                A pseudonym is the name
-                                                displayed to counselors when you
-                                                choose to remain anonymous. Your
-                                                real identity will be hidden,
-                                                and this pseudonym will be used
-                                                instead during conversations and
-                                                interactions within the system.
-                                            </p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </Label>
+                                                <p>
+                                                    A pseudonym is the name
+                                                    displayed to counselors when
+                                                    you choose to remain
+                                                    anonymous. Your real
+                                                    identity will be hidden, and
+                                                    this pseudonym will be used
+                                                    instead during conversations
+                                                    and interactions within the
+                                                    system.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
 
-                                <Input
-                                    id="pseudonym"
-                                    name="pseudonym"
-                                    placeholder="Enter Pseudonym"
-                                    value={data.pseudonym}
-                                    onChange={(e) =>
-                                        setData('pseudonym', e.target.value)
-                                    }
-                                />
+                                    <Input
+                                        id="pseudonym"
+                                        name="pseudonym"
+                                        placeholder="Enter Pseudonym"
+                                        value={data.pseudonym}
+                                        onChange={(e) =>
+                                            setData('pseudonym', e.target.value)
+                                        }
+                                    />
 
-                                <InputError message={errors.pseudonym} />
-                            </div>
+                                    <InputError message={errors.pseudonym} />
+                                </div>
+                            )}
 
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
@@ -289,6 +316,7 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
                                     id="name"
                                     name="name"
                                     placeholder="Enter Name"
+                                    disabled={!isStudent}
                                     value={data.name}
                                     onChange={(e) =>
                                         setData('name', e.target.value)
@@ -307,6 +335,7 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
                                     type="email"
                                     placeholder="Enter Email"
                                     value={data.email}
+                                    disabled={!isStudent}
                                     onChange={(e) =>
                                         setData('email', e.target.value)
                                     }
@@ -315,72 +344,85 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
                                 <InputError message={errors.email} />
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="current_password">
-                                    Current Password
-                                </Label>
+                            {isStudent && (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="current_password">
+                                            Current Password
+                                        </Label>
 
-                                <PasswordInput
-                                    id="current_password"
-                                    name="current_password"
-                                    placeholder="Enter Current Password"
-                                    value={data.current_password}
-                                    onChange={(e) =>
-                                        setData(
-                                            'current_password',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
+                                        <PasswordInput
+                                            id="current_password"
+                                            name="current_password"
+                                            placeholder="Enter Current Password"
+                                            value={data.current_password}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'current_password',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
 
-                                <InputError message={errors.current_password} />
-                            </div>
+                                        <InputError
+                                            message={errors.current_password}
+                                        />
+                                    </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="new_password">
-                                    New Password
-                                </Label>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="new_password">
+                                            New Password
+                                        </Label>
 
-                                <PasswordInput
-                                    id="new_password"
-                                    name="new_password"
-                                    placeholder="Enter New Password"
-                                    value={data.new_password}
-                                    onChange={(e) =>
-                                        setData('new_password', e.target.value)
-                                    }
-                                />
+                                        <PasswordInput
+                                            id="new_password"
+                                            name="new_password"
+                                            placeholder="Enter New Password"
+                                            value={data.new_password}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'new_password',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
 
-                                <InputError message={errors.new_password} />
-                            </div>
+                                        <InputError
+                                            message={errors.new_password}
+                                        />
+                                    </div>
 
-                            <div className="grid gap-2">
-                                <Label
-                                    htmlFor="is_anonymous"
-                                    className="flex items-center gap-2"
-                                >
-                                    <Checkbox
-                                        id="is_anonymous"
-                                        name="is_anonymous"
-                                        checked={data.is_anonymous}
-                                        onCheckedChange={(checked) =>
-                                            setData(
-                                                'is_anonymous',
-                                                Boolean(checked),
-                                            )
-                                        }
-                                    />
-                                    Remain Anonymous
-                                </Label>
+                                    <div className="grid gap-2">
+                                        <Label
+                                            htmlFor="is_anonymous"
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Checkbox
+                                                id="is_anonymous"
+                                                name="is_anonymous"
+                                                checked={data.is_anonymous}
+                                                onCheckedChange={(checked) =>
+                                                    setData(
+                                                        'is_anonymous',
+                                                        Boolean(checked),
+                                                    )
+                                                }
+                                            />
+                                            Remain Anonymous
+                                        </Label>
 
-                                <p className="text-sm text-muted-foreground">
-                                    When enabled, your pseudonym will be
-                                    displayed instead of your real name during
-                                    counseling sessions.
-                                </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            When enabled, your pseudonym will be
+                                            displayed instead of your real name
+                                            during counseling sessions.
+                                        </p>
 
-                                <InputError message={errors.is_anonymous} />
-                            </div>
+                                        <InputError
+                                            message={errors.is_anonymous}
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </form>
                     <DrawerFooter>

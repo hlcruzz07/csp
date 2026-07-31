@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\MessageStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class CounselorController extends Controller
@@ -105,9 +109,44 @@ class CounselorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request)
     {
-        //
+        try {
+            $request->validate([
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+            ]);
+
+            $counselor = User::findOrFail(auth()->id());
+
+            // Delete the old avatar if it exists
+            if ($counselor->avatar) {
+                Storage::disk('public')->delete($counselor->avatar);
+            }
+
+            // Store the new avatar
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+
+            // Update only the avatar field
+            $counselor->update([
+                'avatar' => $avatarPath,
+            ]);
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'Profile Updated',
+            ]);
+
+            return redirect()->back();
+        } catch (\Throwable $th) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Something went wrong updating profile.',
+            ]);
+
+            Log::error('Error updating profile ' . $th->getMessage());
+
+            return redirect()->back();
+        }
     }
 
     /**

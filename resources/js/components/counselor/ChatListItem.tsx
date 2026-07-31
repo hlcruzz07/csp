@@ -37,8 +37,6 @@ export function ChatListItem({
             ? content.slice(0, PREVIEW_LIMIT) + '...'
             : content;
 
-    console.log(message);
-
     useEffect(() => {
         const echo = (window as any).Echo;
         if (!echo) {

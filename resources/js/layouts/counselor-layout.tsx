@@ -3,6 +3,7 @@ import { NotificationDropdown } from '@/components/counselor/NotificationDropdow
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
 import { Conversation, Message, Notification } from '@/types/entities';
 import { usePage } from '@inertiajs/react';
 import { MenuIcon } from 'lucide-react';
@@ -57,7 +58,7 @@ export default function CounselorLayout({
         <div className="flex h-screen overflow-hidden">
             {isMobile ? (
                 <Sheet>
-                    <div className="fixed top-7 left-7 z-50">
+                    <div className="fixed top-4 left-3 z-50">
                         <SheetTrigger asChild>
                             <button className="rounded-full p-2 transition hover:bg-muted">
                                 <MenuIcon className="size-5" />
@@ -71,19 +72,20 @@ export default function CounselorLayout({
             ) : (
                 <div className="bg-background">{sidebar}</div>
             )}
-            <div className="flex grow flex-col gap-4 overflow-hidden bg-secondary p-4">
-                <div className="flex items-center justify-end rounded-lg bg-background p-3">
+            <div className="flex grow flex-col overflow-hidden bg-secondary md:gap-4 md:p-4">
+                <div className="flex items-center justify-end rounded-none bg-background p-3 md:rounded-lg">
                     <div className="flex items-center gap-4">
                         <NotificationDropdown notifications={NOTIFICATIONS} />
-                        <Avatar className="size-6 overflow-hidden rounded-full sm:size-10 md:size-12">
+                        <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                             <AvatarImage src="" alt="User avatar" />
-                            <AvatarFallback className="rounded-lg bg-neutral-200 text-[10px] text-black sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
+                            <AvatarFallback className="rounded-lg bg-neutral-200 text-sm text-black sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
                                 JD
                             </AvatarFallback>
                         </Avatar>
+                        <StudentDrawer />
                     </div>
                 </div>
-                <div className="grow overflow-hidden rounded-lg bg-background">
+                <div className="grow overflow-hidden rounded-none bg-background md:rounded-lg">
                     {children}
                 </div>
             </div>

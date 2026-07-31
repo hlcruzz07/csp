@@ -26,8 +26,8 @@ class StudentRepo
             ->exists()
             &&
             $this->userCollege
-            ->where('user_id', auth()->id())
-            ->exists();
+                ->where('user_id', auth()->id())
+                ->exists();
     }
 
     public function setCollege(int $college_id)
@@ -47,7 +47,8 @@ class StudentRepo
 
     public function setIsAnonymous(bool $is_anonymous = true)
     {
-        return $this->model->update([
+        $student = $this->model->findOrFail(auth()->id());
+        return $student->update([
             'is_anonymous' => $is_anonymous
         ]);
     }

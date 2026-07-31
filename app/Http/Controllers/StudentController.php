@@ -17,7 +17,9 @@ use Inertia\Inertia;
 
 class StudentController extends Controller
 {
-    public function __construct(protected StudentRepo $studentRepo) {}
+    public function __construct(protected StudentRepo $studentRepo)
+    {
+    }
     /**
      * Display a listing of the resource.
      */
@@ -50,7 +52,7 @@ class StudentController extends Controller
             DB::transaction(function () use ($data) {
                 $this->studentRepo->setConsent();
                 $this->studentRepo->setCollege($data['college_id']);
-                $this->studentRepo->setIsAnonymous($data['is_anonymous']);
+                $this->studentRepo->setIsAnonymous((bool) $data['is_anonymous']);
 
                 FindStudentCounselorJob::dispatch(auth()->id())->afterCommit();
             });
@@ -85,17 +87,17 @@ class StudentController extends Controller
 
             Inertia::flash('toast', [
                 'type' => 'success',
-                'message' => 'Student Profile Updated',
+                'message' => 'Profile Updated',
             ]);
 
             return redirect()->back();
         } catch (\Throwable $th) {
             Inertia::flash('toast', [
                 'type' => 'error',
-                'message' => 'Something went wrong updating student profile.',
+                'message' => 'Something went wrong updating profile.',
             ]);
 
-            Log::error('Error updating student profile ' . $th->getMessage());
+            Log::error('Error updating profile ' . $th->getMessage());
 
             return redirect()->back();
         }

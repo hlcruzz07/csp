@@ -49,8 +49,6 @@ export default function CompleteStudentModal() {
 
     const { colleges } = usePage<PageProps>().props;
 
-    console.log(colleges);
-
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 

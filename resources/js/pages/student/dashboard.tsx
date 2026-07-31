@@ -48,6 +48,7 @@ import {
     SendHorizontal,
     Sparkles,
     Tag,
+    Video,
     XIcon,
 } from 'lucide-react';
 import InputEmoji from 'react-input-emoji';
@@ -64,6 +65,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import SendingMessageDialog from '../../components/SendingMessage';
 type Message = {
     id: number;
     conversation_id: number;
@@ -162,7 +164,7 @@ export default function Dashboard() {
     const conversation_id = auth.user.student_conversation?.uuid;
 
     useEffect(() => {
-        if (!isCompleted) return;
+        if (!isCompleted || hasConvo) return; // already matched — nothing to poll for
 
         let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -172,26 +174,13 @@ export default function Dashboard() {
                 const hasConversation = response.data.hasConversation;
 
                 if (!hasConversation) {
-                    setHasConvo(false);
                     timeoutId = setTimeout(poll, 3000);
                     return;
                 }
 
-                setHasConvo(true);
-
-                // Refresh Inertia's shared props (auth.user.student_conversation)
-                // now that a match exists, so counselor info is actually populated.
-                router.reload({
-                    only: ['auth'],
-                    onSuccess: () => setHasConvo(true),
-                });
-
-                const cookie = document.cookie
-                    .split('; ')
-                    .find((row) => row.startsWith('csp_welcome_no_show='))
-                    ?.split('=')[1];
-
-                if (!cookie) setOpenWelcome(true);
+                // Conversation just matched — reload to get fresh server props
+                // (auth.user.student_conversation, useForm's initial state, etc.)
+                window.location.reload();
             } catch (error) {
                 console.error(error);
                 timeoutId = setTimeout(poll, 3000);
@@ -201,7 +190,7 @@ export default function Dashboard() {
         poll();
 
         return () => clearTimeout(timeoutId);
-    }, [isCompleted]);
+    }, [isCompleted, hasConvo]);
     const loadMessages = async (page = 1) => {
         if (!conversation_id) return;
         if (isLoadingMessages || isLoadingOlderMessages) return;
@@ -416,6 +405,9 @@ export default function Dashboard() {
     return (
         <div className="flex h-screen flex-col overflow-hidden">
             <WelcomeModal open={isOpenWelcome} setOpen={setOpenWelcome} />
+            {data.attachments.length > 0 && (
+                <SendingMessageDialog open={processing} progress={progress} />
+            )}
 
             {/* Header */}
             <div className="flex items-center justify-between p-3">
@@ -510,7 +502,9 @@ export default function Dashboard() {
                                                     />
                                                 )}
                                                 {message.content && (
-                                                    <div className="flex justify-end">
+                                                    <div
+                                                        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                    >
                                                         <div
                                                             className={`relative max-w-full ${
                                                                 message.is_structured
@@ -620,15 +614,18 @@ export default function Dashboard() {
 
                             const isImage = item.type.startsWith('image/');
                             const isAudio = item.type.startsWith('audio/');
+                            const isVideo = item.type.startsWith('video/');
                             const isPdf = item.type === 'application/pdf';
 
                             const kindLabel = isPdf
                                 ? 'PDF'
-                                : isAudio
-                                  ? 'Audio'
-                                  : isImage
-                                    ? 'Image'
-                                    : 'File';
+                                : isVideo
+                                  ? 'Video'
+                                  : isAudio
+                                    ? 'Audio'
+                                    : isImage
+                                      ? 'Image'
+                                      : 'File';
 
                             const sizeLabel = `${(
                                 item.size /
@@ -644,6 +641,14 @@ export default function Dashboard() {
                                                 src={url}
                                                 alt={item.name}
                                                 className="h-full w-full object-cover"
+                                            />
+                                        </AttachmentMedia>
+                                    ) : isVideo ? (
+                                        <AttachmentMedia variant="image">
+                                            <video
+                                                src={url}
+                                                className="h-full w-full object-cover"
+                                                muted
                                             />
                                         </AttachmentMedia>
                                     ) : (
@@ -843,6 +848,20 @@ export default function Dashboard() {
                                                 e.preventDefault();
                                                 document
                                                     .getElementById(
+                                                        'attachments-video',
+                                                    )
+                                                    ?.click();
+                                            }}
+                                        >
+                                            <Video className="mr-2 size-4" />
+                                            Videos
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            className="cursor-pointer"
+                                            onSelect={(e) => {
+                                                e.preventDefault();
+                                                document
+                                                    .getElementById(
                                                         'attachments-audio',
                                                     )
                                                     ?.click();
@@ -881,6 +900,14 @@ export default function Dashboard() {
                                 accept=".jpg,.png,.jpeg,.webp"
                                 multiple
                                 onChange={(e) => handleAttachmentChange(e)}
+                            />
+                            <Input
+                                type="file"
+                                hidden
+                                id="attachments-video"
+                                accept=".mp4,.mov,.webm,.mkv,.avi,.m4v"
+                                multiple
+                                onChange={(e) => handleAttachmentChange(e, 50)}
                             />
                             <Input
                                 type="file"

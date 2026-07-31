@@ -28,21 +28,16 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(fu
     Route::get('/', fn() => redirect()->route('adminDashboard'));
 
     Route::get('/dashboard', [AdminController::class, 'index'])->name('adminDashboard');
-    Route::get('/students', [AdminController::class, 'students'])->name('students');
+    Route::get('/counselors', [AdminController::class, 'counselors'])->name('counselors');
 });
-Route::get('/php-upload', function () {
-    return [
-        'upload_max_filesize' => ini_get('upload_max_filesize'),
-        'post_max_size' => ini_get('post_max_size'),
-        'max_file_uploads' => ini_get('max_file_uploads'),
-    ];
-});
+
 Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->group(function () {
 
     Route::get('/', fn() => redirect()->route('counselorDashboard'));
 
     Route::get('/conversations', [CounselorController::class, 'index'])->name('counselorDashboard');
     Route::get('/conversations/{uuid}', [CounselorController::class, 'show'])->name('counselorConversation');
+    Route::post('/updateProfile', [CounselorController::class, 'update'])->name('counselorUpdate');
 });
 
 Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->group(function () {
@@ -57,7 +52,14 @@ Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->grou
 Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
-
+Route::get('/php-limits-check', function () {
+    return [
+        'upload_max_filesize' => ini_get('upload_max_filesize'),
+        'post_max_size' => ini_get('post_max_size'),
+        'max_file_uploads' => ini_get('max_file_uploads'),
+        'memory_limit' => ini_get('memory_limit'),
+    ];
+});
 Route::middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
     Route::get('/conversation/{uuid}', [ConversationController::class, 'index'])->name('conversation');
 });

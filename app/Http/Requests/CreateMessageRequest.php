@@ -7,6 +7,34 @@ use Illuminate\Validation\Validator;
 
 class CreateMessageRequest extends FormRequest
 {
+    protected const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v'];
+
+    protected const ALLOWED_EXTENSIONS = [
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'mp4',
+        'mov',
+        'webm',
+        'mkv',
+        'avi',
+        'm4v',
+        'mp3',
+        'wav',
+        'm4a',
+        'ogg',
+        'pdf',
+        'doc',
+        'docx',
+        'txt',
+        'csv',
+        'xlsx',
+    ];
+
+    protected const DEFAULT_MAX_KB = 5120;   // 5 MB
+    protected const VIDEO_MAX_KB = 51200;    // 50 MB
+
     public function authorize(): bool
     {
         return true;
@@ -40,10 +68,31 @@ class CreateMessageRequest extends FormRequest
                 'max:5',
             ],
 
+            /**
+             * Video files (especially .mp4/.mov from phones, screen recorders,
+             * or re-muxed sources) are frequently mis-sniffed by PHP's fileinfo
+             * as application/octet-stream or other generic binary types, which
+             * makes Laravel's `mimes` rule unreliable for video specifically.
+             * So we validate by file extension here instead of mime content,
+             * same as most apps handle video uploads in practice.
+             */
             'attachments.*' => [
                 'file',
-                'max:5120', // 5 MB in KB
-                'mimes:jpg,jpeg,png,webp,mp3,wav,m4a,ogg,pdf,doc,docx,txt,csv,xlsx',
+                function ($attribute, $value, $fail) {
+                    $extension = strtolower($value->getClientOriginalExtension());
+
+                    if (!in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+                        $fail("The {$attribute} must be a file of type: " . implode(', ', self::ALLOWED_EXTENSIONS) . '.');
+                        return;
+                    }
+
+                    $isVideo = in_array($extension, self::VIDEO_EXTENSIONS, true);
+                    $maxKb = $isVideo ? self::VIDEO_MAX_KB : self::DEFAULT_MAX_KB;
+
+                    if ($value->getSize() > $maxKb * 1024) {
+                        $fail("The {$attribute} must not be greater than " . ($maxKb / 1024) . ' MB.');
+                    }
+                },
             ],
         ];
     }
@@ -59,9 +108,6 @@ class CreateMessageRequest extends FormRequest
             'attachments.array' => 'Attachments must be a valid array of files.',
             'attachments.max' => 'You may upload a maximum of 5 attachments.',
             'attachments.*.file' => 'Each attachment must be a valid file.',
-            'attachments.*.mimes' => 'Only JPG, JPEG, PNG, WEBP, MP3, WAV, M4A, OGG, PDF, DOC, DOCX, TXT, CSV, and XLSX files are allowed.',
-            'attachments.*.max' => 'Each attachment must not exceed 5 MB.',
-
         ];
     }
 }

@@ -37,7 +37,7 @@ class UserSeeder extends Seeder
 
 
 
-        $admin =  User::create([
+        $admin = User::create([
             'uuid' => (string) Str::uuid(),
             'name' => 'Harold Cruz',
             'pseudonym' => 'Donny Pangilinan',
@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
         // row if no colleges have been seeded yet.
         $collegeIds = College::pluck('id');
 
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 1; $i++) {
             $counselor = User::create([
                 'uuid' => (string) Str::uuid(),
                 'name' => fake()->name(),
@@ -72,7 +72,7 @@ class UserSeeder extends Seeder
         }
 
         // Students with no assigned college — no UserCollege row created.
-        for ($i = 1; $i <= 2; $i++) {
+        for ($i = 1; $i <= 15; $i++) {
             User::create([
                 'uuid' => (string) Str::uuid(),
                 'name' => fake()->name(),
