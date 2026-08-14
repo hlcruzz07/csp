@@ -72,6 +72,7 @@ Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->grou
 Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
+
 Route::get('/php-limits-check', function () {
     return [
         'upload_max_filesize' => ini_get('upload_max_filesize'),
@@ -80,6 +81,7 @@ Route::get('/php-limits-check', function () {
         'memory_limit' => ini_get('memory_limit'),
     ];
 });
+
 Route::middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
     Route::get('/conversation/{uuid}', [ConversationController::class, 'index'])->name('conversation');
 });
