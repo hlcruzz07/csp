@@ -80,5 +80,10 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasMany(Conversation::class, 'counselor_id');
     }
+    public function userCollege()
+    {
+        return $this->hasOne(UserCollege::class);
+    }
+
 
 }

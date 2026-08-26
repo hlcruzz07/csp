@@ -3,13 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Enums\MessageStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateStudentProfileRequest;
+use App\Models\Attachment;
 use App\Models\College;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,6 +36,7 @@ class AdminController extends Controller
                 'counselors' => $counselorCount,
                 'colleges' => College::count(),
                 'conversations' => Conversation::count(),
+
             ],
 
             'roleDistribution' => [
@@ -37,19 +44,6 @@ class AdminController extends Controller
                 ['role' => 'counselors', 'label' => 'Counselors', 'value' => $counselorCount],
             ],
 
-            'collegeDistribution' => College::query()
-                ->withCount('userColleges')
-                ->orderByDesc('user_colleges_count')
-                ->take(6)
-                ->get()
-                ->map(fn(College $college) => [
-                    'college' => $college->code ?: $college->name,
-                    'students' => $college->user_colleges_count,
-                ])
-                ->values(),
-
-            // Message activity for the last 14 days. Swap ->count() logic
-            // if you'd rather pull this with a single grouped query.
             'messageActivity' => collect(range(13, 0))
                 ->map(function (int $daysAgo) {
                     $date = CarbonImmutable::today()->subDays($daysAgo);
@@ -61,33 +55,84 @@ class AdminController extends Controller
                 })
                 ->values(),
 
-            'recentConversations' => Conversation::query()
-                ->with([
-                    'student:id,name,pseudonym,is_anonymous',
-                    'counselor:id,name',
-                    'latestMessage:messages.id,messages.conversation_id,messages.content,messages.created_at',
-                ])
-                ->latest('updated_at')
-                ->take(5)
-                ->get()
-                ->map(fn(Conversation $conversation) => [
-                    'id' => $conversation->id,
-                    'student' => $conversation->student?->is_anonymous
-                        ? $conversation->student?->pseudonym
-                        : $conversation->student?->name,
-                    'counselor' => $conversation->counselor?->name,
-                    'preview' => str($conversation->latestMessage?->content ?? 'No messages yet')
-                        ->limit(64)
-                        ->toString(),
-                    'updatedAt' => $conversation->updated_at?->diffForHumans(),
-                ])
+            'conversationActivity' => collect(range(13, 0))
+                ->map(function (int $daysAgo) {
+                    $date = CarbonImmutable::today()->subDays($daysAgo);
+
+                    return [
+                        'date' => $date->format('M j'),
+                        'conversations' => Conversation::whereDate('created_at', $date)->count(),
+                    ];
+                })
                 ->values(),
         ]);
     }
 
     public function counselors()
     {
-        return Inertia::render('admin/counselors/index');
+        return Inertia::render('admin/counselors/index', [
+            'colleges' => College::all()
+        ]);
+    }
+
+    public function createCounselor(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email',
+            'assigned_college_id' => 'exists:colleges,id|string'
+        ]);
+
+        $counselor = User::create([
+            'avatar' => null,
+            'email' => $data['email'],
+            'pseudonym' => fake()->userName(),
+            'name' => $data['email'],
+            'is_anonymous' => false,
+            'password' => fake()->password(),
+            'email_verified_at' => now(),
+            'uuid' => Str::uuid(),
+            'role' => UserRole::COUNSELOR
+        ]);
+
+
+        $counselor->userCollege()->create([
+            'college_id' => (int) $data['assigned_college_id']
+        ]);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Counselor Added Successfully',
+        ]);
+
+        return redirect()->back();
+    }
+
+    public function updateCounselor(UpdateStudentProfileRequest $request, int $id)
+    {
+        $data = $request->all();
+        $counselor = User::findOrFail($id);
+
+        $payload = [
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ];
+
+        if (!empty($data['new_password'])) {
+            $payload['password'] = Hash::make($data['new_password']);
+        }
+        $counselor->update($payload);
+
+        $counselor->userCollege()->update([
+            'college_id' => (int) $data['assigned_college_id']
+        ]);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Counselor Profile Updated',
+        ]);
+
+        return redirect()->back();
     }
 
     /**

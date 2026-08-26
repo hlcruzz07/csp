@@ -62,107 +62,106 @@
 :root {
     --radius: 0.625rem;
 
-    /* BASE - soft cream background */
-    --background: #f5eee6;
-    --foreground: #4a3038;
+    /* BASE - pale sky background */
+    --background: #eaf7fb;
+    --foreground: #0f2854;
 
     --card: #ffffff;
-    --card-foreground: #4a3038;
+    --card-foreground: #0f2854;
 
     --popover: #ffffff;
-    --popover-foreground: #4a3038;
+    --popover-foreground: #0f2854;
 
-    /* PRIMARY - deepened dusty rose for contrast */
-    --primary: #c97a8c;
+    /* PRIMARY - deep blue for strong contrast */
+    --primary: #1c4d8d;
     --primary-foreground: #ffffff;
 
-    /* SECONDARY - pale cream yellow */
-    --secondary: #fff8e3;
-    --secondary-foreground: #4a3038;
+    /* SECONDARY - pale sky blue */
+    --secondary: #bde8f5;
+    --secondary-foreground: #0f2854;
 
-    /* ACCENT - the palette's dusty rose, punchy against cream */
-    --accent: #e6a4b4;
-    --accent-foreground: #4a3038;
+    /* ACCENT - mid sky blue, punchy against the pale bg */
+    --accent: #4988c4;
+    --accent-foreground: #ffffff;
 
-    /* MUTED - peach, warmer than border */
-    --muted: #f3d7ca;
-    --muted-foreground: #8a6a62;
+    /* MUTED - light tint of the pale blue */
+    --muted: #d6f0f8;
+    --muted-foreground: #4a6a8a;
 
     --destructive: #ef4444;
 
-    /* BORDER/INPUT - subtle peach */
-    --border: #f3d7ca;
-    --input: #fff8e3;
-    --ring: #c97a8c;
+    /* BORDER/INPUT - subtle pale blue */
+    --border: #bde8f5;
+    --input: #eaf7fb;
+    --ring: #1c4d8d;
 
     /* CHART COLORS */
-    --chart-1: #c97a8c;
-    --chart-2: #e6a4b4;
-    --chart-3: #f3d7ca;
-    --chart-4: #fff8e3;
-    --chart-5: #4a3038;
+    --chart-1: #1c4d8d;
+    --chart-2: #4988c4;
+    --chart-3: #bde8f5;
+    --chart-4: #eaf7fb;
+    --chart-5: #0f2854;
 
     /* SIDEBAR - slightly distinct from page background */
-    --sidebar: #f3d7ca;
-    --sidebar-foreground: #4a3038;
-    --sidebar-primary: #c97a8c;
+    --sidebar: #bde8f5;
+    --sidebar-foreground: #0f2854;
+    --sidebar-primary: #1c4d8d;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #e6a4b4;
-    --sidebar-accent-foreground: #4a3038;
-    --sidebar-border: #f3d7ca;
-    --sidebar-ring: #c97a8c;
+    --sidebar-accent: #4988c4;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #bde8f5;
+    --sidebar-ring: #1c4d8d;
 }
 .dark {
-    /* BASE - deep warm brown background */
-    --background: #241a1c;
-    --foreground: #f5eee6;
+    /* BASE - true black background */
+    --background: #000000;
+    --foreground: #eaf7fb;
 
-    --card: #362428;
-    --card-foreground: #f5eee6;
+    --card: #0d0d0d;
+    --card-foreground: #eaf7fb;
 
-    --popover: #362428;
-    --popover-foreground: #f5eee6;
+    --popover: #0d0d0d;
+    --popover-foreground: #eaf7fb;
 
-    /* PRIMARY - dusty rose pops against dark brown */
-    --primary: #e6a4b4;
-    --primary-foreground: #241a1c;
+    /* PRIMARY - sky blue pops against black */
+    --primary: #4988c4;
+    --primary-foreground: #000000;
 
     /* SECONDARY */
-    --secondary: #4a3038;
-    --secondary-foreground: #f5eee6;
+    --secondary: #1c4d8d;
+    --secondary-foreground: #eaf7fb;
 
     /* ACCENT */
-    --accent: #c97a8c;
+    --accent: #1c4d8d;
     --accent-foreground: #ffffff;
 
     /* MUTED */
-    --muted: #3a282a;
-    --muted-foreground: #c9a8ab;
+    --muted: #161616;
+    --muted-foreground: #9dc4e0;
 
     --destructive: #ef4444;
 
-    --border: #4a3038;
-    --input: #4a3038;
-    --ring: #e6a4b4;
+    --border: #1e1e1e;
+    --input: #1e1e1e;
+    --ring: #4988c4;
 
     /* CHARTS */
-    --chart-1: #e6a4b4;
-    --chart-2: #c97a8c;
-    --chart-3: #f3d7ca;
-    --chart-4: #fff8e3;
-    --chart-5: #f5eee6;
+    --chart-1: #4988c4;
+    --chart-2: #1c4d8d;
+    --chart-3: #bde8f5;
+    --chart-4: #eaf7fb;
+    --chart-5: #ffffff;
 
     /* SIDEBAR */
-    --sidebar: #362428;
-    --sidebar-foreground: #f5eee6;
-    --sidebar-primary: #e6a4b4;
-    --sidebar-primary-foreground: #241a1c;
-    --sidebar-accent: #c97a8c;
+    --sidebar: #0d0d0d;
+    --sidebar-foreground: #eaf7fb;
+    --sidebar-primary: #4988c4;
+    --sidebar-primary-foreground: #000000;
+    --sidebar-accent: #1c4d8d;
     --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #4a3038;
-    --sidebar-ring: #e6a4b4;
+    --sidebar-border: #1e1e1e;
+    --sidebar-ring: #4988c4;
 }
-
 /* =========================
    BASE STYLES
 ========================= */
@@ -349,7 +348,6 @@
     border-color: var(--accent) !important;
 }
 
-/* Clear focus state so the composer reads as "active" while typing */
 .react-input-emoji--container:focus-within {
     border-color: var(--ring) !important;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
@@ -388,8 +386,6 @@
 
 /* =========================
    CHAT COMPOSER ICON BUTTONS
-   Shared style for the image / category / AI-suggest
-   toggle buttons that sit beside the message input.
 ========================= */
 .composer-icon-btn {
     border: 1.5px solid var(--border) !important;
@@ -416,7 +412,6 @@
     opacity: 0.5;
 }
 
-/* Active/selected state, e.g. AI suggestions open, or a category chosen */
 .composer-icon-btn.is-active {
     background-color: var(--primary) !important;
     color: var(--primary-foreground) !important;

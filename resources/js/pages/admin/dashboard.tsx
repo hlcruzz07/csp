@@ -2,7 +2,9 @@ import { Head } from '@inertiajs/react';
 import {
     Building2,
     GraduationCap,
+    Paperclip,
     MessagesSquare,
+    MessageSquareText,
     UsersRound,
 } from 'lucide-react';
 import {
@@ -15,7 +17,6 @@ import {
     XAxis,
 } from 'recharts';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     Card,
     CardContent,
@@ -24,12 +25,11 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import {
-    ChartConfig,
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
 } from '@/components/ui/chart';
-import { Separator } from '@/components/ui/separator';
+import type { ChartConfig } from '@/components/ui/chart';
 import { adminDashboard } from '@/routes';
 
 interface Stats {
@@ -45,30 +45,28 @@ interface RoleDatum {
     value: number;
 }
 
-interface CollegeDatum {
-    college: string;
-    students: number;
-}
-
 interface MessageDatum {
     date: string;
     messages: number;
 }
 
-interface RecentConversation {
-    id: string | number;
-    student: string | null;
-    counselor: string | null;
-    preview: string;
-    updatedAt: string | null;
+interface ConversationDatum {
+    date: string;
+    conversations: number;
+}
+
+interface StatusDatum {
+    status: string;
+    label: string;
+    value: number;
 }
 
 interface DashboardProps {
     stats: Stats;
     roleDistribution: RoleDatum[];
-    collegeDistribution: CollegeDatum[];
     messageActivity: MessageDatum[];
-    recentConversations: RecentConversation[];
+    conversationActivity: ConversationDatum[];
+    statusDistribution: StatusDatum[];
 }
 
 const roleChartConfig = {
@@ -77,12 +75,19 @@ const roleChartConfig = {
     counselors: { label: 'Counselors', color: 'var(--chart-2)' },
 } satisfies ChartConfig;
 
-const collegeChartConfig = {
-    students: { label: 'Students', color: 'var(--chart-1)' },
-} satisfies ChartConfig;
-
 const activityChartConfig = {
     messages: { label: 'Messages', color: 'var(--chart-3)' },
+} satisfies ChartConfig;
+
+const conversationChartConfig = {
+    conversations: { label: 'Conversations', color: 'var(--chart-4)' },
+} satisfies ChartConfig;
+
+const statusChartConfig = {
+    value: { label: 'Messages' },
+    sent: { label: 'Sent', color: 'var(--chart-1)' },
+    seen: { label: 'Seen', color: 'var(--chart-2)' },
+    responded: { label: 'Responded', color: 'var(--chart-3)' },
 } satisfies ChartConfig;
 
 function StatCard({
@@ -111,22 +116,12 @@ function StatCard({
     );
 }
 
-function initials(name: string | null) {
-    if (!name) return '?';
-    return name
-        .split(' ')
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-}
-
 export default function Dashboard({
     stats,
     roleDistribution,
-    collegeDistribution,
     messageActivity,
-    recentConversations,
+    conversationActivity,
+    statusDistribution,
 }: DashboardProps) {
     const roleData = roleDistribution.map((row) => ({
         ...row,
@@ -235,8 +230,10 @@ export default function Dashboard({
                                                 if (
                                                     !viewBox ||
                                                     !('cx' in viewBox)
-                                                )
+                                                ) {
                                                     return null;
+                                                }
+
                                                 return (
                                                     <text
                                                         x={viewBox.cx}
@@ -271,6 +268,42 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
                 </div>
+                <Card className="border-sidebar-border/70 dark:border-sidebar-border">
+                    <CardHeader>
+                        <CardTitle>Conversation activity</CardTitle>
+                        <CardDescription>
+                            New conversations over the last 14 days
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer
+                            config={conversationChartConfig}
+                            className="h-[260px] w-full"
+                        >
+                            <BarChart data={conversationActivity}>
+                                <CartesianGrid
+                                    vertical={false}
+                                    strokeDasharray="4 4"
+                                />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    interval="preserveStartEnd"
+                                />
+                                <ChartTooltip
+                                    content={<ChartTooltipContent />}
+                                />
+                                <Bar
+                                    dataKey="conversations"
+                                    fill="var(--color-conversations)"
+                                    radius={[4, 4, 0, 0]}
+                                />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

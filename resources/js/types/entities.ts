@@ -76,6 +76,8 @@ export interface Counselor {
     two_factor_confirmed_at: string | null;
     created_at: string;
     updated_at: string;
+    assigned_college?: College;
+    student_count: number;
 }
 
 export interface StudentConversation {

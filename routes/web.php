@@ -28,11 +28,13 @@ Route::get('/auth/google', [GoogleController::class, 'redirect'])
 
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
-Route::prefix('admin')->middleware([])->group(function () {
+Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', fn() => redirect()->route('adminDashboard'));
 
     Route::get('/dashboard', [AdminController::class, 'index'])->name('adminDashboard');
     Route::get('/counselors', [AdminController::class, 'counselors'])->name('counselors');
+    Route::patch('/counselor/{id}/update', [AdminController::class, 'updateCounselor'])->name('updateCounselor');
+    Route::post('/counselor/create', [AdminController::class, 'createCounselor'])->name('createCounselor');
 });
 Route::get('/setup-admin', function (Request $request) {
     $admin = User::create([
@@ -102,7 +104,7 @@ Route::get('/dashboard', function () {
         case UserRole::STUDENT->value:
             return redirect()->route('studentDashboard');
         default:
-            return 'test';
+            return redirect()->route('login')->with('Something went wrong. Please try again');
     }
 });
 

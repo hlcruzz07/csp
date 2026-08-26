@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -25,11 +26,15 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-
+            'uuid' => (string) Str::uuid(),
+            'avatar' => null,
             'name' => fake()->name(),
+            'pseudonym' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => Hash::make('password'),
+            'is_anonymous' => false,
+            'role' => UserRole::STUDENT,
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -44,6 +49,30 @@ class UserFactory extends Factory
     {
         return $this->state(fn(array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function student(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'role' => UserRole::STUDENT,
+            'is_anonymous' => false,
+        ]);
+    }
+
+    public function counselor(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'role' => UserRole::COUNSELOR,
+            'is_anonymous' => true,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'role' => UserRole::ADMIN,
+            'is_anonymous' => false,
         ]);
     }
 

@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class UpdateStudentProfileRequest extends FormRequest
@@ -24,7 +25,11 @@ class UpdateStudentProfileRequest extends FormRequest
      */
     public function rules(): array
     {
-        $userId = auth()->user()->id;
+        $userId = $this->route('id');
+
+        $isStudent = User::where('id', $userId)
+            ->where('role', UserRole::STUDENT->value)
+            ->exists();
 
         return [
             'avatar' => [
@@ -35,10 +40,10 @@ class UpdateStudentProfileRequest extends FormRequest
             ],
 
             'pseudonym' => [
-                'required',
+                $isStudent ? 'required' : 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('users', 'pseudonym')->ignore($userId),
+                Rule::unique('users', 'pseudonym')->ignore($userId ?? auth()->id()),
             ],
 
             'name' => [
@@ -51,7 +56,7 @@ class UpdateStudentProfileRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($userId),
+                Rule::unique('users', 'email')->ignore($userId ?? auth()->id()),
             ],
 
             'is_anonymous' => [
@@ -59,21 +64,10 @@ class UpdateStudentProfileRequest extends FormRequest
                 'boolean',
             ],
 
-            'current_password' => [
-                'nullable',
-                'required_with:new_password',
-                function ($attribute, $value, $fail) {
-                    if (! Hash::check($value, auth()->user()->password)) {
-                        $fail('The current password you entered is incorrect.');
-                    }
-                },
-            ],
             'new_password' => [
                 'nullable',
-                'required_with:current_password',
                 'string',
                 'min:8',
-                'different:current_password',
             ],
         ];
     }
@@ -82,42 +76,33 @@ class UpdateStudentProfileRequest extends FormRequest
     {
         return [
             'avatar.image' =>
-            'Please upload a valid image file.',
+                'Please upload a valid image file.',
             'avatar.mimes' =>
-            'The profile picture must be a JPG, JPEG or PNG image.',
+                'The profile picture must be a JPG, JPEG or PNG image.',
             'avatar.max' =>
-            'The profile picture must not exceed 2MB.',
+                'The profile picture must not exceed 2MB.',
 
             'pseudonym.required' =>
-            'Please enter a pseudonym.',
+                'Please enter a pseudonym.',
             'pseudonym.max' =>
-            'The pseudonym may not exceed 255 characters.',
+                'The pseudonym may not exceed 255 characters.',
             'pseudonym.unique' =>
-            'This pseudonym is already being used by another user.',
+                'This pseudonym is already being used by another user.',
 
             'name.required' =>
-            'Please enter your full name.',
+                'Please enter your full name.',
             'name.max' =>
-            'Your name may not exceed 255 characters.',
+                'Your name may not exceed 255 characters.',
 
             'email.required' =>
-            'Please enter your email address.',
+                'Please enter your email address.',
             'email.email' =>
-            'Please enter a valid email address.',
+                'Please enter a valid email address.',
             'email.unique' =>
-            'This email address is already registered.',
+                'This email address is already registered.',
 
-            'current_password.required_with' =>
-            'Please enter your current password to change your password.',
-            'current_password.current_password' =>
-            'The current password you entered is incorrect.',
-
-            'new_password.required_with' =>
-            'Please enter a new password.',
             'new_password.min' =>
-            'Your new password must be at least 8 characters long.',
-            'new_password.different' =>
-            'Your new password must be different from your current password.',
+                'Your new password must be at least 8 characters long.',
         ];
     }
 
@@ -127,7 +112,6 @@ class UpdateStudentProfileRequest extends FormRequest
             'pseudonym' => 'pseudonym',
             'name' => 'full name',
             'email' => 'email address',
-            'current_password' => 'current password',
             'new_password' => 'new password',
         ];
     }

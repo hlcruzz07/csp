@@ -18,6 +18,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from './ui/card';
+import { Button } from './ui/button';
 
 export type PaginationLink = {
     url: string | null;
@@ -428,153 +429,143 @@ export default function DataTable<T>({
     };
 
     return (
-        <Card>
-            <CardContent>
-                <DataTableToolbar toolbar={toolbar} total={paginated?.total} />
+        <>
+            <DataTableToolbar toolbar={toolbar} total={paginated?.total} />
 
-                <div className="relative mt-3 overflow-x-auto rounded-md lg:border">
-                    <table className="table w-full text-left text-base text-foreground">
-                        <thead className="lg:border-b">
-                            <tr>
-                                {columns.map((col) => {
-                                    const isSortable =
-                                        !!col.sortKey && !!onSortChange;
-                                    const isActive =
-                                        isSortable && sort?.key === col.sortKey;
+            <div className="relative mt-3 overflow-x-auto rounded-md lg:border">
+                <table className="table w-full text-left text-base text-foreground">
+                    <thead className="lg:border-b">
+                        <tr>
+                            {columns.map((col) => {
+                                const isSortable =
+                                    !!col.sortKey && !!onSortChange;
+                                const isActive =
+                                    isSortable && sort?.key === col.sortKey;
 
-                                    return (
-                                        <th
-                                            key={col.key}
-                                            scope="col"
-                                            className={col.headerClassName}
-                                        >
-                                            {isSortable ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleSortClick(
-                                                            col.sortKey!,
-                                                        )
-                                                    }
-                                                    className="inline-flex items-center gap-1 text-left hover:text-primary"
-                                                >
-                                                    {col.header}
-                                                    {isActive ? (
-                                                        sort?.order ===
-                                                        'asc' ? (
-                                                            <ArrowDownNarrowWide className="size-3.5" />
-                                                        ) : (
-                                                            <ArrowUpNarrowWide className="size-3.5" />
-                                                        )
-                                                    ) : (
-                                                        <ArrowUpDownIcon className="size-3.5 opacity-40" />
-                                                    )}
-                                                </button>
-                                            ) : (
-                                                col.header
-                                            )}
-                                        </th>
-                                    );
-                                })}
-                            </tr>
-                        </thead>
-                        <tbody className="lg:border-b">
-                            {rows.map((row, index) => (
-                                <tr
-                                    key={rowKey ? rowKey(row, index) : index}
-                                    className="hover:bg-muted/50"
-                                >
-                                    {columns.map((col) => (
-                                        <td
-                                            key={col.key}
-                                            data-label={col.header}
-                                            className={col.cellClassName}
-                                        >
-                                            {col.render(row, index)}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-
-                            {rows.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={columns.length}
-                                        className="force-center p-3 text-center"
+                                return (
+                                    <th
+                                        key={col.key}
+                                        scope="col"
+                                        className={col.headerClassName}
                                     >
-                                        {emptyMessage}
+                                        {isSortable ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleSortClick(
+                                                        col.sortKey!,
+                                                    )
+                                                }
+                                                className="inline-flex items-center gap-1 text-left hover:text-primary"
+                                            >
+                                                {col.header}
+                                                {isActive ? (
+                                                    sort?.order === 'asc' ? (
+                                                        <ArrowDownNarrowWide className="size-3.5" />
+                                                    ) : (
+                                                        <ArrowUpNarrowWide className="size-3.5" />
+                                                    )
+                                                ) : (
+                                                    <ArrowUpDownIcon className="size-3.5 opacity-40" />
+                                                )}
+                                            </button>
+                                        ) : (
+                                            col.header
+                                        )}
+                                    </th>
+                                );
+                            })}
+                        </tr>
+                    </thead>
+                    <tbody className="lg:border-b">
+                        {rows.map((row, index) => (
+                            <tr
+                                key={rowKey ? rowKey(row, index) : index}
+                                className="hover:bg-muted/50"
+                            >
+                                {columns.map((col) => (
+                                    <td
+                                        key={col.key}
+                                        data-label={col.header}
+                                        className={col.cellClassName}
+                                    >
+                                        {col.render(row, index)}
                                     </td>
-                                </tr>
-                            )}
-                        </tbody>
-                        <tfoot>
+                                ))}
+                            </tr>
+                        ))}
+
+                        {rows.length === 0 && (
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-6 py-4"
+                                    className="force-center p-3 text-center"
                                 >
-                                    <div className="flex w-full flex-col items-center justify-between gap-3 sm:flex-row">
-                                        <p className="text-sm text-muted-foreground">
-                                            Showing{' '}
-                                            <span className="font-medium">
-                                                {paginated?.from ?? 0}
-                                            </span>
-                                            –
-                                            <span className="font-medium">
-                                                {paginated?.to ?? 0}
-                                            </span>{' '}
-                                            of{' '}
-                                            <span className="font-medium">
-                                                {paginated?.total ?? 0}
-                                            </span>
-                                        </p>
-
-                                        <div className="flex flex-wrap gap-2">
-                                            {paginated?.links?.map(
-                                                (link, idx) => {
-                                                    const page = getPageFromUrl(
-                                                        link.url,
-                                                    );
-
-                                                    return (
-                                                        <button
-                                                            key={idx}
-                                                            disabled={!link.url}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-
-                                                                if (!page) {
-                                                                    return;
-                                                                }
-
-                                                                onPageChange(
-                                                                    page,
-                                                                );
-                                                            }}
-                                                            className={`rounded px-3 py-1 ${
-                                                                link.active
-                                                                    ? 'bg-primary text-white dark:text-black'
-                                                                    : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                                                            }`}
-                                                            type="button"
-                                                        >
-                                                            <span
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: link.label,
-                                                                }}
-                                                            />
-                                                        </button>
-                                                    );
-                                                },
-                                            )}
-                                        </div>
-                                    </div>
+                                    {emptyMessage}
                                 </td>
                             </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </CardContent>
-        </Card>
+                        )}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colSpan={columns.length} className="px-6 py-4">
+                                <div className="flex w-full flex-col items-center justify-between gap-3 sm:flex-row">
+                                    <p className="text-sm text-muted-foreground">
+                                        Showing{' '}
+                                        <span className="font-medium">
+                                            {paginated?.from ?? 0}
+                                        </span>
+                                        –
+                                        <span className="font-medium">
+                                            {paginated?.to ?? 0}
+                                        </span>{' '}
+                                        of{' '}
+                                        <span className="font-medium">
+                                            {paginated?.total ?? 0}
+                                        </span>
+                                    </p>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        {paginated?.links?.map((link, idx) => {
+                                            const page = getPageFromUrl(
+                                                link.url,
+                                            );
+
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    disabled={!link.url}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+
+                                                        if (!page) {
+                                                            return;
+                                                        }
+
+                                                        onPageChange(page);
+                                                    }}
+                                                    className={`rounded px-3 py-1 ${
+                                                        link.active
+                                                            ? 'bg-primary text-white dark:text-black'
+                                                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                                                    }`}
+                                                    type="button"
+                                                >
+                                                    <span
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: link.label,
+                                                        }}
+                                                    />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </>
     );
 }

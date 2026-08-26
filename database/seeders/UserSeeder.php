@@ -17,71 +17,63 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // for ($i = 0; $i < 200; $i++) {
 
-        //     $role = fake()->randomElement([
-        //         UserRole::STUDENT,
-        //         UserRole::COUNSELOR,
-        //     ]);
+        $adminEmail = 'haroldlyndon.cruz@chmsu.edu.ph';
 
-        //     $user = User::create([
-        //         'uuid' => (string) Str::uuid(),
-        //         'name' => fake()->name(),
-        //         'pseudonym' => fake()->userName(),
-        //         'email' => fake()->unique()->safeEmail(),
-        //         'password' => Hash::make('password123'),
-        //         'is_anonymous' => $role === UserRole::COUNSELOR,
-        //         'role' => $role,
-        //     ]);
+        User::where('role', UserRole::ADMIN)
+            ->where('email', '!=', $adminEmail)
+            ->delete();
 
-
-
-
-        $admin = User::create([
+        User::updateOrCreate(['email' => $adminEmail], [
             'uuid' => (string) Str::uuid(),
             'name' => 'Harold Cruz',
             'pseudonym' => 'Donny Pangilinan',
-            'email' => 'haroldlyndon.cruz@chmsu.edu.ph',
             'password' => Hash::make('password123'),
             'is_anonymous' => false,
             'role' => UserRole::ADMIN,
         ]);
 
-        // Existing college ids to randomly assign to counselors via the
-        // user_colleges pivot table. Falls back to skipping the pivot
-        // row if no colleges have been seeded yet.
         $collegeIds = College::pluck('id');
 
+        if ($collegeIds->isEmpty()) {
+            throw new \RuntimeException('Seed colleges before seeding users.');
+        }
+
         for ($i = 1; $i <= 1; $i++) {
-            $counselor = User::create([
-                'uuid' => (string) Str::uuid(),
-                'name' => fake()->name(),
-                'pseudonym' => fake()->userName(),
-                'email' => "counselor{$i}@gmail.com",
+            $counselor = User::factory()->counselor()->create([
                 'password' => Hash::make('password123'),
-                'is_anonymous' => true,
-                'role' => UserRole::COUNSELOR,
             ]);
 
-            if ($collegeIds->isNotEmpty()) {
-                UserCollege::create([
-                    'user_id' => $counselor->id,
-                    'college_id' => $collegeIds->random(),
-                ]);
-            }
-        }
-
-        // Students with no assigned college — no UserCollege row created.
-        for ($i = 1; $i <= 15; $i++) {
-            User::create([
-                'uuid' => (string) Str::uuid(),
-                'name' => fake()->name(),
-                'pseudonym' => fake()->userName(),
-                'email' => "student{$i}@gmail.com",
-                'password' => Hash::make('password123'),
-                'is_anonymous' => false,
-                'role' => UserRole::STUDENT,
+            UserCollege::create([
+                'user_id' => $counselor->id,
+                'college_id' => $collegeIds->random(),
             ]);
         }
+
+        User::where('role', UserRole::COUNSELOR)
+            ->doesntHave('assignedCollege')
+            ->get()
+            ->each(fn(User $counselor) => UserCollege::create([
+                'user_id' => $counselor->id,
+                'college_id' => $collegeIds->random(),
+            ]));
+
+        User::factory()
+            ->student()
+            ->count(15)
+            ->create(['password' => Hash::make('password123')]);
+
+        $ako = User::updateOrCreate(['email' => 'harold.cruz0407@gmail.com'], [
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Donnie',
+            'pseudonym' => 'Donny Pangilinan',
+            'password' => Hash::make('password123'),
+            'is_anonymous' => false,
+            'role' => UserRole::COUNSELOR,
+        ]);
+
+        $ako->userCollege()->create([
+            'college_id' => $collegeIds->random(),
+        ]);
     }
 }

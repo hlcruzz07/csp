@@ -55,7 +55,6 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
         name: auth.user?.name ?? '',
         email: auth.user?.email ?? '',
         is_anonymous: auth.user?.is_anonymous ?? false,
-        current_password: '',
         new_password: '',
     };
     const { data, setData, errors, processing, post, clearErrors, setError } =
@@ -87,7 +86,6 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
                 onSuccess: () => {
                     setData((data) => ({
                         ...data,
-                        current_password: '',
                         new_password: '',
                     }));
                     if (onSave) onSave;
@@ -107,7 +105,6 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
             onSuccess: () => {
                 setData((data) => ({
                     ...data,
-                    current_password: '',
                     new_password: '',
                 }));
                 if (onSave) onSave;
@@ -346,29 +343,6 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
 
                             {isStudent && (
                                 <>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="current_password">
-                                            Current Password
-                                        </Label>
-
-                                        <PasswordInput
-                                            id="current_password"
-                                            name="current_password"
-                                            placeholder="Enter Current Password"
-                                            value={data.current_password}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'current_password',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-
-                                        <InputError
-                                            message={errors.current_password}
-                                        />
-                                    </div>
-
                                     <div className="grid gap-2">
                                         <Label htmlFor="new_password">
                                             New Password
