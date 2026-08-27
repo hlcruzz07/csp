@@ -29,11 +29,6 @@ jobs:
       - name: 🐘 Install PHP dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      - name: 📦 Install & build frontend assets
-        run: |
-          npm install
-          npm run build
-
       - name: 📝 Create .env file
         run: |
           cat <<EOF > .env
@@ -112,6 +107,11 @@ jobs:
 
           GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
           EOF
+
+      - name: 📦 Install & build frontend assets
+        run: |
+          npm install
+          npm run build
 
       - name: 🚀 Deploy to CloudPanel via SFTP / rsync
         env:
