@@ -119,7 +119,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           # Hostinger's FTP is usually port 21 (default). Only set this if yours differs.
           # port: 21
-          server-dir: /htdocs/csp.scythelabs.online/
+          server-dir: /home/scythelabs-csp/htdocs/csp.scythelabs.online
           exclude: |
             **/.git*
             **/.git*/**
