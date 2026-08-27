@@ -1,4 +1,4 @@
-name: Deploy Laravel (cPanel SSH)
+name: Deploy Laravel
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
           timeout: 120s
           command_timeout: 20m
           source: .,!.git,!.github,!.gitignore,!.env,!.docker-compose.yml,!.Dockerfile,!.README.md,!.log,!.zip,!node_modules
-          target: 'public_html/subdomains/guidance'
+          target: 'home/files/htdocs/csp.scythelabs.online'
           rm: false
 
       - name: 🚀 Deploy via SSH
@@ -53,7 +53,7 @@ jobs:
           port: 22
           script: |
             set -e
-            cd public_html/subdomains/guidance
+            cd home/files/htdocs/csp.scythelabs.online
 
             echo "📝 Create .env file"
             cat <<EOF > .env
