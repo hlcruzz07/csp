@@ -10,7 +10,7 @@ export default function AppLogo() {
                 <span className="mb-0.5 truncate text-lg leading-tight font-semibold">
                     CSS
                 </span>
-                <small>Counseling Support System</small>
+                <small>Counseling Support Platform</small>
             </div>
         </>
     );

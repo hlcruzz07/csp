@@ -87,8 +87,6 @@ export default function CounselorEditDialog({
 }: CounselorEditDialogProps) {
     const { data, setData, errors, clearErrors, reset, patch, processing } =
         useForm<CounselorFormState>(EMPTY_FORM);
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
     // Reset form state whenever a different counselor is loaded into the dialog.
@@ -134,17 +132,11 @@ export default function CounselorEditDialog({
         }
 
         const objectUrl = URL.createObjectURL(data.avatar);
+
         setAvatarPreview(objectUrl);
 
         return () => URL.revokeObjectURL(objectUrl);
     }, [data.avatar]);
-
-    const handleAvatarPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] ?? null;
-        setData('avatar', file);
-        // allow re-selecting the same file later and trigger onChange again
-        e.target.value = '';
-    };
 
     const handleSubmit = () => {
         if (!counselor) {
@@ -182,48 +174,16 @@ export default function CounselorEditDialog({
                 </DialogHeader>
 
                 <div className="grid gap-4 py-2">
-                    <div className="flex items-center gap-4">
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="group relative shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            aria-label="Change avatar"
-                        >
-                            <Avatar className="h-16 w-16 border">
-                                <AvatarImage
-                                    src={displayedAvatarUrl}
-                                    alt={counselor?.name ?? 'Counselor'}
-                                />
-                                <AvatarFallback>
-                                    {counselor
-                                        ? getInitials(counselor.name)
-                                        : '?'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
-                                <Pencil className="h-5 w-5 text-white" />
-                            </span>
-                        </button>
-
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium">Avatar</p>
-                            <p className="text-sm text-muted-foreground">
-                                Click the photo to upload a new one.
-                            </p>
-                            {errors.avatar && (
-                                <p className="text-sm text-destructive">
-                                    {errors.avatar}
-                                </p>
-                            )}
-                        </div>
-
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleAvatarPick}
-                        />
+                    <div className="flex items-center justify-center">
+                        <Avatar className="h-20 w-20 border">
+                            <AvatarImage
+                                src={displayedAvatarUrl}
+                                alt={counselor?.name ?? 'Counselor'}
+                            />
+                            <AvatarFallback>
+                                {counselor ? getInitials(counselor.name) : '?'}
+                            </AvatarFallback>
+                        </Avatar>
                     </div>
 
                     <div className="space-y-2">

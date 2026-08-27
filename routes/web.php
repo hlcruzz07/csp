@@ -20,7 +20,9 @@ Route::get('/', function () {
         return redirect('/dashboard');
     }
 
-    return Inertia::render('welcome');
+    return Inertia::render('welcome', [
+        'counselors' => User::where('role', UserRole::COUNSELOR)->with('assignedCollege')->get()
+    ]);
 })->name('home');
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])

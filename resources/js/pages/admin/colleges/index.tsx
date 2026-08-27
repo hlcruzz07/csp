@@ -224,20 +224,6 @@ export default function Index() {
                 onSaved={() => setRefreshKey((k) => k + 1)}
             />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-2">
-                    <StatWidget
-                        label="Total counselors"
-                        value={response?.stats.total ?? 0}
-                        icon={UsersRound}
-                    />
-
-                    <StatWidget
-                        label="Assigned to a college"
-                        value={response?.stats.assignedCollege ?? 0}
-                        icon={Building2}
-                    />
-                </div>
-
                 {error && (
                     <p className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
                         {error}

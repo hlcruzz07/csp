@@ -20,9 +20,9 @@ class UserSeeder extends Seeder
 
         $adminEmail = 'haroldlyndon.cruz@chmsu.edu.ph';
 
-        User::where('role', UserRole::ADMIN)
-            ->where('email', '!=', $adminEmail)
-            ->delete();
+        // User::where('role', UserRole::ADMIN)
+        //     ->where('email', '!=', $adminEmail)
+        //     ->delete();
 
         User::updateOrCreate(['email' => $adminEmail], [
             'uuid' => (string) Str::uuid(),
@@ -33,47 +33,47 @@ class UserSeeder extends Seeder
             'role' => UserRole::ADMIN,
         ]);
 
-        $collegeIds = College::pluck('id');
+        // $collegeIds = College::pluck('id');
 
-        if ($collegeIds->isEmpty()) {
-            throw new \RuntimeException('Seed colleges before seeding users.');
-        }
+        // if ($collegeIds->isEmpty()) {
+        //     throw new \RuntimeException('Seed colleges before seeding users.');
+        // }
 
-        for ($i = 1; $i <= 1; $i++) {
-            $counselor = User::factory()->counselor()->create([
-                'password' => Hash::make('password123'),
-            ]);
+        // for ($i = 1; $i <= 1; $i++) {
+        //     $counselor = User::factory()->counselor()->create([
+        //         'password' => Hash::make('password123'),
+        //     ]);
 
-            UserCollege::create([
-                'user_id' => $counselor->id,
-                'college_id' => $collegeIds->random(),
-            ]);
-        }
+        //     UserCollege::create([
+        //         'user_id' => $counselor->id,
+        //         'college_id' => $collegeIds->random(),
+        //     ]);
+        // }
 
-        User::where('role', UserRole::COUNSELOR)
-            ->doesntHave('assignedCollege')
-            ->get()
-            ->each(fn(User $counselor) => UserCollege::create([
-                'user_id' => $counselor->id,
-                'college_id' => $collegeIds->random(),
-            ]));
+        // User::where('role', UserRole::COUNSELOR)
+        //     ->doesntHave('assignedCollege')
+        //     ->get()
+        //     ->each(fn(User $counselor) => UserCollege::create([
+        //         'user_id' => $counselor->id,
+        //         'college_id' => $collegeIds->random(),
+        //     ]));
 
-        User::factory()
-            ->student()
-            ->count(15)
-            ->create(['password' => Hash::make('password123')]);
+        // User::factory()
+        //     ->student()
+        //     ->count(15)
+        //     ->create(['password' => Hash::make('password123')]);
 
-        $ako = User::updateOrCreate(['email' => 'harold.cruz0407@gmail.com'], [
-            'uuid' => (string) Str::uuid(),
-            'name' => 'Donnie',
-            'pseudonym' => 'Donny Pangilinan',
-            'password' => Hash::make('password123'),
-            'is_anonymous' => false,
-            'role' => UserRole::COUNSELOR,
-        ]);
+        // $ako = User::updateOrCreate(['email' => 'harold.cruz0407@gmail.com'], [
+        //     'uuid' => (string) Str::uuid(),
+        //     'name' => 'Donnie',
+        //     'pseudonym' => 'Donny Pangilinan',
+        //     'password' => Hash::make('password123'),
+        //     'is_anonymous' => false,
+        //     'role' => UserRole::COUNSELOR,
+        // ]);
 
-        $ako->userCollege()->create([
-            'college_id' => $collegeIds->random(),
-        ]);
+        // $ako->userCollege()->create([
+        //     'college_id' => $collegeIds->random(),
+        // ]);
     }
 }
