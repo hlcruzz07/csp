@@ -142,6 +142,15 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan queue:restart || true
+
+            # Restart Reverb WebSocket server in background
+            pkill -f "artisan reverb:start" || true
+            nohup php artisan reverb:start --port=8081 --host=0.0.0.0 > storage/logs/reverb.log 2>&1 &
+
+            # Restart Queue Worker in background
+            pkill -f "artisan queue:work" || true
+            nohup php artisan queue:work --sleep=3 --tries=3 > storage/logs/queue.log 2>&1 &
           EOF
 
-          echo "✅ Deployment completed successfully!s"
+          echo "✅ Deployment completed successfully!"
