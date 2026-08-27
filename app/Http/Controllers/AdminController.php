@@ -83,21 +83,13 @@ class AdminController extends Controller
             'assigned_college_id' => 'exists:colleges,id|string'
         ]);
 
-        $pseudonym = class_exists(\Faker\Factory::class)
-            ? fake()->userName()
-            : 'counselor_' . Str::lower(Str::random(8));
-
-        $password = class_exists(\Faker\Factory::class)
-            ? fake()->password()
-            : Str::password(16);
-
         $counselor = User::create([
             'avatar' => null,
             'email' => $data['email'],
-            'pseudonym' => $pseudonym,
+            'pseudonym' => fake()->userName(),
             'name' => $data['email'],
             'is_anonymous' => false,
-            'password' => $password,
+            'password' => fake()->password(),
             'email_verified_at' => now(),
             'uuid' => Str::uuid(),
             'role' => UserRole::COUNSELOR
