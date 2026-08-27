@@ -22,7 +22,7 @@ jobs:
       - name: 🟢 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: 🐘 Install PHP dependencies
         run: composer install --no-dev --optimize-autoloader
@@ -111,28 +111,37 @@ jobs:
           GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
           EOF
 
-      - name: 📤 Upload files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: 📤 Upload files via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
+          username: ${{ secrets.FTP_USERNAME }}
           server: ${{ secrets.FTP_SERVER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 22
+          local_path: './*'
+          remote_path: '/home/scythelabs-csp/htdocs/csp.scythelabs.online/'
+          sftp_only: true
+          exclude: |
+            .git*
+            .git*/**
+            .github/**
+            .github/**/**
+            node_modules/**
+            tests/**
+
+      - name: ⚡ Execute Artisan commands via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # Hostinger's FTP is usually port 21 (default). Only set this if yours differs.
-          # port: 21
-          server-dir: /home/scythelabs-csp/htdocs/csp.scythelabs.online/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/.github/**/**
-            **/node_modules/**
-            **/tests/**
-
-      - name: ✅ Done
-        run: |
-          echo "✅ Files uploaded via FTP."
-          echo "⚠️ Note: plain FTP can't run remote commands."
-          echo "   Run these manually on the server after each deploy (via Hostinger's Terminal or SSH):"
-          echo "   php artisan storage:link"
-          echo "   php artisan migrate --force"
-          echo "   php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan cache:clear"
+          port: 22
+          script: |
+            cd /home/scythelabs-csp/htdocs/csp.scythelabs.online
+            php artisan storage:link || true
+            php artisan migrate --force
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            echo "🚀 Deployment completed successfully!"
