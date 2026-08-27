@@ -134,7 +134,7 @@ jobs:
 
           echo "Running post-deployment Laravel commands on CloudPanel VPS..."
           sshpass -e ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }} << 'EOF'
-            cd htdocs/cps.scythelabs.online/
+            cd htdocs/csp.scythelabs.online/
             php artisan storage:link || true
             php artisan migrate --force
             php artisan optimize:clear
