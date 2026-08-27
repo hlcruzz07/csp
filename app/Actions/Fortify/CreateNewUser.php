@@ -26,10 +26,14 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
+        $pseudonym = class_exists(\Faker\Factory::class)
+            ? fake()->userName()
+            : 'student_' . Str::lower(Str::random(8));
+
         return User::create([
             'uuid' => (string) Str::uuid(),
             'name' => $input['name'],
-            'pseudonym' => fake()->userName(),
+            'pseudonym' => $pseudonym,
             'email' => $input['email'],
             'password' => $input['password'],
             'role' => UserRole::STUDENT,
