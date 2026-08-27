@@ -113,23 +113,34 @@ jobs:
           GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
           EOF
 
-      - name: 📤 Upload files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          # If your FTP user is jailed to its home folder (/home/scythelabs-cps/),
-          # the path should start from htdocs/ or /htdocs/:
-          server-dir: htdocs/cps.scythelabs.online/
-          # Optional: Use 'ftps' if your FTP server enforces SSL/TLS, or 'ftp' for plain FTP
-          protocol: ftp
-          # 'loose' allows self-signed/untrusted SSL certificates or non-standard control sockets
-          security: loose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/.github/**/**
-            **/node_modules/**
-            **/tests/**
+      - name: 🚀 Deploy to CloudPanel via SFTP / rsync
+        env:
+          SSHPASS: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          echo "Installing sshpass and rsync..."
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass rsync
+
+          echo "Starting file synchronization to CloudPanel server..."
+          sshpass -e rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            --exclude=".git*" \
+            --exclude=".github*" \
+            --exclude="node_modules*" \
+            --exclude="tests*" \
+            --exclude="README.md" \
+            --exclude="scratch*" \
+            ./ ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }}:htdocs/cps.scythelabs.online/
+
+          echo "Running post-deployment Laravel commands on CloudPanel VPS..."
+          sshpass -e ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }} << 'EOF'
+            cd htdocs/cps.scythelabs.online/
+            php artisan storage:link || true
+            php artisan migrate --force
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+          EOF
+
+          echo "✅ Deployment completed successfully!"
