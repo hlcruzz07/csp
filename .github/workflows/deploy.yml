@@ -143,4 +143,4 @@ jobs:
             php artisan view:cache
           EOF
 
-          echo "✅ Deployment completed successfully!t"
+          echo "✅ Deployment completed successfully!"
