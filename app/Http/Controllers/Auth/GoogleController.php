@@ -29,7 +29,7 @@ class GoogleController extends Controller
                     'message' => 'User Unauthorize.',
                 ]);
 
-                return back();
+                return back()->with('error', 'Unauthorize user.');
             }
 
             $user->update([
@@ -45,12 +45,7 @@ class GoogleController extends Controller
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
 
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => 'Something went wrong completing info. Please try again',
-            ]);
-
-            return back();
+            return back()->with('error', 'Something went wrong, please try again.');
         }
     }
 }
