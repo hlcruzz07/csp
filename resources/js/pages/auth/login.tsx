@@ -12,6 +12,7 @@ import ThemeButton from '@/components/ThemeButton';
 
 type Props = {
     status?: string;
+    error?: string;
     canResetPassword: boolean;
 };
 
@@ -38,7 +39,12 @@ function GoogleIcon() {
     );
 }
 
-export default function Login({ status }: Props) {
+export default function Login({ status, error }: Props) {
+    const flashMessage = error ?? status;
+    const flashClassName = error
+        ? 'mb-4 text-center text-sm font-medium text-red-600'
+        : 'mb-4 text-center text-sm font-medium text-green-600';
+
     return (
         <>
             <Head title="Log in" />
@@ -121,10 +127,8 @@ export default function Login({ status }: Props) {
 
             <ThemeButton />
 
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
+            {flashMessage && (
+                <div className={flashClassName}>{flashMessage}</div>
             )}
         </>
     );
