@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
-import { normalizeName } from '@/lib/utils';
+import { normalizeName, resolveAvatarUrl } from '@/lib/utils';
 import { Conversation, Message, UserProps } from '@/types/entities';
 import dayjs from 'dayjs';
 import { DotIcon } from 'lucide-react';
@@ -77,8 +77,8 @@ export function ChatListItem({
             <Avatar className="size-13 overflow-hidden rounded-full">
                 <AvatarImage
                     src={
-                        !sender.is_anonymous && sender.avatar
-                            ? `/storage/${sender.avatar}`
+                        !sender.is_anonymous
+                            ? resolveAvatarUrl(sender.avatar)
                             : '/default.webp'
                     }
                     alt={displayName}

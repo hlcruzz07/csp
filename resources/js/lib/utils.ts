@@ -58,3 +58,26 @@ export const normalizeName = (name?: string | null) => {
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (char) => char.toUpperCase());
 };
+
+export const resolveAvatarUrl = (
+    avatar?: string | null,
+    size = 600,
+): string => {
+    if (!avatar) return '/default.webp';
+
+    const value = avatar.trim();
+
+    if (/^https?:\/\//i.test(value)) {
+        if (/lh3\.googleusercontent\.com/i.test(value)) {
+            return value.replace(
+                /=s\d+-c(?:\?.*)?$/i,
+                `=s${size}-c`,
+            );
+        }
+
+        return value;
+    }
+
+    const path = value.replace(/^\/?storage\//, '').replace(/^\/+/, '');
+    return `/storage/${path}`;
+};

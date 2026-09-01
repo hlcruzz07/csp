@@ -21,6 +21,7 @@ import apiService from '@/lib/api-service';
 import { adminDashboard } from '@/routes';
 import type { College, Counselor } from '@/types/entities';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolveAvatarUrl } from '@/lib/utils';
 
 type CounselorResponse = PaginatedData<Counselor> & {
     stats: {
@@ -55,13 +56,6 @@ function StatWidget({
             </CardContent>
         </Card>
     );
-}
-function resolveAvatarUrl(avatar?: string | null): string | undefined {
-    if (!avatar) return undefined;
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-        return avatar;
-    }
-    return `/storage/${avatar}`;
 }
 type PageProps = {
     colleges: College[];

@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { handleErrors, normalizeName } from '@/lib/utils';
+import { handleErrors, normalizeName, resolveAvatarUrl } from '@/lib/utils';
 import { useInitials } from '@/hooks/use-initials';
 import {
     Tooltip,
@@ -443,11 +443,7 @@ export default function Dashboard() {
                 <div className="flex cursor-pointer items-center gap-2">
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
-                            src={
-                                counselor?.avatar
-                                    ? `/storage/${counselor.avatar}`
-                                    : undefined
-                            }
+                            src={resolveAvatarUrl(counselor?.avatar)}
                             alt={normalizeName(counselor?.name || '')}
                         />
                         <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black md:text-sm dark:bg-neutral-700 dark:text-white">
@@ -500,9 +496,10 @@ export default function Dashboard() {
                                 <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
                                     <AvatarImage
                                         src={
-                                            !message.sender?.is_anonymous &&
-                                            message.sender?.avatar
-                                                ? `/storage/${message.sender.avatar}`
+                                            !message.sender?.is_anonymous
+                                                ? resolveAvatarUrl(
+                                                      message.sender?.avatar,
+                                                  )
                                                 : '/default.webp'
                                         }
                                         alt={normalizeName(

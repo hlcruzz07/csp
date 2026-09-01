@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { handleErrors, normalizeName } from '@/lib/utils';
+import { handleErrors, normalizeName, resolveAvatarUrl } from '@/lib/utils';
 import { useInitials } from '@/hooks/use-initials';
 import {
     Tooltip,
@@ -448,8 +448,8 @@ export default function CounselorConversationShow() {
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
                             src={
-                                !student?.is_anonymous && student?.avatar
-                                    ? `/storage/${student.avatar}`
+                                !student?.is_anonymous
+                                    ? resolveAvatarUrl(student?.avatar)
                                     : '/default.webp'
                             }
                             className="object-cover"
@@ -524,9 +524,10 @@ export default function CounselorConversationShow() {
                                 <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
                                     <AvatarImage
                                         src={
-                                            shouldShowAvatar &&
-                                            message.sender?.avatar
-                                                ? `/storage/${message.sender.avatar}`
+                                            shouldShowAvatar
+                                                ? resolveAvatarUrl(
+                                                      message.sender?.avatar,
+                                                  )
                                                 : '/default.webp'
                                         }
                                         alt={displayName}

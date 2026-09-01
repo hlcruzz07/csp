@@ -25,7 +25,7 @@ import type { College, Counselor } from '@/types/entities';
 import { Switch } from '../ui/switch';
 import { updateCounselor } from '@/routes';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { handleErrors } from '@/lib/utils';
+import { handleErrors, resolveAvatarUrl } from '@/lib/utils';
 
 const UNASSIGNED = 'unassigned';
 
@@ -54,20 +54,6 @@ const EMPTY_FORM: CounselorFormState = {
     is_anonymous: false,
     avatar: null,
 };
-
-/**
- * Resolves a counselor's stored avatar value into a displayable URL.
- * - OAuth avatars are already full URLs (e.g. Google) — used as-is.
- * - Locally uploaded avatars are relative paths under storage/app/public/avatars,
- *   served via the public disk symlink at /storage/...
- */
-function resolveAvatarUrl(avatar?: string | null): string | undefined {
-    if (!avatar) return undefined;
-    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-        return avatar;
-    }
-    return `/storage/${avatar}`;
-}
 
 function getInitials(name: string): string {
     return name

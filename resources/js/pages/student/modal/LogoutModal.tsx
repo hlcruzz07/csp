@@ -41,7 +41,11 @@ export function LogoutModal({ open, setOpen }: LogoutModalProps) {
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
 
-                    <Link href={logout()} onClick={handleLogout}>
+                    <Link
+                        href={logout()}
+                        onClick={handleLogout}
+                        className="w-full sm:w-max"
+                    >
                         <AlertDialogAction>Yes, Log Out</AlertDialogAction>
                     </Link>
                 </AlertDialogFooter>

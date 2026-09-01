@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useInitials } from '@/hooks/use-initials';
-import { handleErrors, normalizeName } from '@/lib/utils';
+import { handleErrors, normalizeName, resolveAvatarUrl } from '@/lib/utils';
 import { useForm, usePage } from '@inertiajs/react';
 import {
     CameraIcon,
@@ -162,9 +162,7 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
 
     const avatarPreview = data.avatar
         ? previewUrlRef.current
-        : auth.user?.avatar
-          ? `/storage/${auth.user.avatar}`
-          : undefined;
+        : resolveAvatarUrl(auth.user?.avatar);
 
     const [openLogout, setOpenLogout] = useState(false);
     const [openDrawer, setOpenDrawer] = useState(false);
