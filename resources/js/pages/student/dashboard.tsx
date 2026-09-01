@@ -446,7 +446,7 @@ export default function Dashboard() {
                         <h1>
                             {normalizeName(counselor?.name || '')}
                             {' - '}
-                            {normalizeName(counselor?.role || '')}
+                            {normalizeName(counselor?.role || 'Undefined')}
                         </h1>
                         <small className="capitalized">
                             {auth.user?.assigned_college?.name}{' '}
