@@ -69,10 +69,7 @@ export const resolveAvatarUrl = (
 
     if (/^https?:\/\//i.test(value)) {
         if (/lh3\.googleusercontent\.com/i.test(value)) {
-            return value.replace(
-                /=s\d+-c(?:\?.*)?$/i,
-                `=s${size}-c`,
-            );
+            return value.replace(/=s\d+-c(?:\?.*)?$/i, `=s${size}-c`);
         }
 
         return value;

@@ -545,7 +545,7 @@ export default function Dashboard() {
                                         )}
 
                                         <div
-                                            className={`${message.is_structured && 'mt-4'}`}
+                                            className={`w-full ${message.is_structured && 'mt-4'}`}
                                         >
                                             {message.attachments?.length >
                                                 0 && (
@@ -577,7 +577,7 @@ export default function Dashboard() {
                                             )}
                                             {message.content && (
                                                 <div
-                                                    className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                    className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
                                                 >
                                                     <div
                                                         className={`relative max-w-full ${
