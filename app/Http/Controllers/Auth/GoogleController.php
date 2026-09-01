@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Inertia\Inertia;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
@@ -24,10 +23,6 @@ class GoogleController extends Controller
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if (!$user) {
-                Inertia::flash('toast', [
-                    'type' => 'error',
-                    'message' => 'User Unauthorize.',
-                ]);
 
                 return back()->with('error', 'Unauthorize user.');
             }
