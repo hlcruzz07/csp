@@ -541,9 +541,9 @@ export default function CounselorConversationShow() {
                                         centered above the bubble, revealed on tap/click
                                         of the message. Replaces the old hover Tooltip,
                                         which doesn't work on touch devices. */}
-                                    <div className="relative flex w-full flex-col items-center">
+                                    <div className="flex w-full flex-col items-center">
                                         {activeTimestampId === message.id && (
-                                            <span className="pointer-events-none fixed top-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-border/60 bg-background/95 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-lg backdrop-blur-sm">
+                                            <span className="mb-1 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
                                                 {dayjs(
                                                     message.created_at,
                                                 ).format(
