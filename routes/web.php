@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
+// test
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect('/dashboard');
