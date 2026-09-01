@@ -53,6 +53,7 @@ export function ChatSidebar({ conversations }: ChatSidebarProps) {
                         className="ps-7"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        autoFocus={false}
                     />
                     <SearchIcon className="absolute left-2" size={15} />
                 </div>

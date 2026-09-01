@@ -483,15 +483,15 @@ function PromptExplorer() {
 const TESTIMONIALS: { quote: string; tag: string }[] = [
     {
         quote: "Writing it out first made it so much easier to actually bring it up. I didn't have to find the right words on the spot.",
-        tag: 'Anonymous student, 2nd year',
+        tag: 'Anonymous student',
     },
     {
         quote: 'I messaged late at night when I finally had the words for it, and my counselor picked it up the next morning.',
-        tag: 'Anonymous student, 3rd year',
+        tag: 'Anonymous student',
     },
     {
         quote: 'Knowing only one person would read it made the difference between writing it and deleting it.',
-        tag: 'Anonymous student, 1st year',
+        tag: 'Anonymous student',
     },
 ];
 
@@ -578,7 +578,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                 }
             `}</style>
 
-            <ThemeButton />
+            <ThemeButton className="top-auto right-3 bottom-3 left-auto" />
 
             <div className="gcis-body relative min-h-screen overflow-hidden border bg-background text-foreground">
                 <div
@@ -702,7 +702,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                             </div>
 
                             {!auth.user && (
-                                <div className="mt-8 flex items-center gap-3">
+                                <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                                     <Link
                                         href={register()}
                                         className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"

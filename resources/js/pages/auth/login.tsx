@@ -1,16 +1,14 @@
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
-import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { googleLogin, register } from '@/routes';
 import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import ThemeButton from '@/components/ThemeButton';
 
 type Props = {
     status?: string;
@@ -40,7 +38,7 @@ function GoogleIcon() {
     );
 }
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({ status }: Props) {
     return (
         <>
             <Head title="Log in" />
@@ -120,6 +118,8 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
+
+            <ThemeButton />
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">

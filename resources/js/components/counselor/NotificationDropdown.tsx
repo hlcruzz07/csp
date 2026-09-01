@@ -27,8 +27,13 @@ export function NotificationDropdown({
                 </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-96 p-0">
-                <div className="p-4">
+            <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                collisionPadding={16}
+                className="w-[calc(100vw-2rem)] max-w-96 p-0"
+            >
+                <div className="p-3 sm:p-4">
                     <DropdownMenuLabel className="p-0 text-base font-semibold">
                         Notifications
                     </DropdownMenuLabel>
@@ -36,18 +41,18 @@ export function NotificationDropdown({
 
                 <DropdownMenuSeparator />
 
-                <div className="max-h-[400px] overflow-y-auto">
+                <div className="max-h-[60vh] overflow-y-auto sm:max-h-[400px]">
                     {notifications.length > 0 ? (
                         notifications.map((n) => (
                             <DropdownMenuItem
                                 key={n.id}
-                                className="flex cursor-pointer flex-col items-start gap-1 p-4"
+                                className="flex cursor-pointer flex-col items-start gap-1 p-3 sm:p-4"
                             >
-                                <div className="flex w-full items-center justify-between">
+                                <div className="flex w-full items-center justify-between gap-2">
                                     <span className="font-medium">
                                         {n.title}
                                     </span>
-                                    <span className="text-xs text-muted-foreground">
+                                    <span className="shrink-0 text-xs text-muted-foreground">
                                         {n.time}
                                     </span>
                                 </div>
@@ -65,12 +70,6 @@ export function NotificationDropdown({
                         </div>
                     )}
                 </div>
-
-                <DropdownMenuSeparator />
-
-                <button className="w-full p-3 text-center text-sm font-medium text-primary hover:bg-muted">
-                    View all notifications
-                </button>
             </DropdownMenuContent>
         </DropdownMenu>
     );

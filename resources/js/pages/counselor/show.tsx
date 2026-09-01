@@ -43,6 +43,7 @@ import {
     ImageIcon,
     Music,
     Paperclip,
+    Plus,
     SendHorizontal,
     Sparkles,
     Tag,
@@ -60,7 +61,11 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuPortal,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import SendingMessageDialog from '@/components/SendingMessage';
@@ -153,6 +158,16 @@ export default function CounselorConversationShow() {
             newScrollHeight - previousScrollHeight + previousScrollTop;
     };
 
+    const appendUniqueMessage = (message: Message) => {
+        setMessages((prevMessages) => {
+            if (prevMessages.some((item) => item.id === message.id)) {
+                return prevMessages;
+            }
+
+            return [...prevMessages, message];
+        });
+    };
+
     const loadMessages = async (page = 1) => {
         if (!conversation_id) return;
         if (isLoadingMessages || isLoadingOlderMessages) return;
@@ -243,30 +258,36 @@ export default function CounselorConversationShow() {
 
     // Listen for broadcast events on this specific conversation
     useEffect(() => {
-        if (!conversation_id) return;
+        console.log('effect running, conversation_id =', conversation_id);
+        if (!conversation_id) {
+            console.log('bailing: no conversation_id');
+            return;
+        }
 
         const echo = (window as any).Echo;
+        console.log('echo instance:', echo);
         if (!echo) {
             console.error('Echo is not initialized');
             return;
         }
 
         const channel = echo.private(`conversation.${conversation_id}`);
-
+        console.log(
+            'subscribing to channel:',
+            `conversation.${conversation_id}`,
+        );
+        channel.subscribed(() => console.log('✅ counselor subscribed'));
+        channel.error((err: any) =>
+            console.error('❌ counselor auth failed', err),
+        );
         channel.listenToAll((event: string, data: any) => {
+            console.log('📩 counselor received event', event, data);
             if (event.endsWith('MessageSent') || event === 'MessageSent') {
-                setMessages((prevMessages) => {
-                    if (prevMessages.some((m) => m.id === data.message.id)) {
-                        return prevMessages; // already have it, skip
-                    }
-                    return [...prevMessages, data.message];
-                });
+                appendUniqueMessage(data.message as Message);
             }
         });
 
-        return () => {
-            echo.leave(`conversation.${conversation_id}`);
-        };
+        return () => echo.leave(`conversation.${conversation_id}`);
     }, [conversation_id]);
 
     // ---- Composer handlers ----
@@ -277,7 +298,6 @@ export default function CounselorConversationShow() {
         post(sendMessage().url, {
             forceFormData: true,
             preserveScroll: true,
-            preserveState: true, // <-- don't rebuild messages from fresh props
             onError: (err) => {
                 console.error('Error sending message', err);
                 handleErrors(err);
@@ -285,6 +305,7 @@ export default function CounselorConversationShow() {
             onSuccess: () => {
                 reset();
                 shouldStickToBottomRef.current = true;
+                void loadMessages(1);
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         setScrollBottom();
@@ -450,9 +471,14 @@ export default function CounselorConversationShow() {
                 </div>
             </div>
 
-            {/* Messages */}
+            {/* Messages — h-full swapped for min-h-0 flex-1: inside a flex-col
+                parent, h-full can push the child taller than the space actually
+                left after the header + composer, relying on overflow-hidden to
+                mask it. min-h-0 flex-1 makes it correctly claim only the
+                remaining space and scroll within that, which is what lets the
+                floating composer panel below sit flush against it. */}
             <div
-                className="m-2 my-0 flex h-full flex-col gap-2 overflow-auto rounded-lg border bg-accent/20 p-1 md:mx-4 md:p-4"
+                className="m-2 my-0 flex min-h-0 flex-1 flex-col gap-2 overflow-auto rounded-lg border bg-accent/20 p-1 md:mx-4 md:p-4"
                 ref={containerRef}
                 onScroll={handleScroll}
             >
@@ -616,473 +642,468 @@ export default function CounselorConversationShow() {
             <form
                 ref={formRef}
                 onSubmit={handleSend}
-                className="relative space-y-3 p-3"
+                className="relative shrink-0 p-3"
             >
-                {/* {data.category_id && (
-                    <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 p-3">
-                        <span className="text-xs text-muted-foreground">
-                            Message Category:
-                        </span>
-                        <Badge variant="secondary">
-                            {selectedCategoryName}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                            {selectedCategoryDesc}
-                        </span>
-                    </div>
-                )} */}
+                {/* Floating panel — attachment previews + AI suggestions.
+                    Positioned absolutely ABOVE the input row (bottom-full) so it
+                    overlays the conversation instead of pushing/squeezing the
+                    message list when it appears. */}
+                {(data.attachments.length > 0 || openSuggestAi) && (
+                    <div className="absolute inset-x-3 bottom-full z-20 mb-2 flex max-h-[45vh] flex-col gap-2 overflow-y-auto rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur-sm sm:max-h-[40vh]">
+                        {/* {data.category_id && (
+                            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 p-3">
+                                <span className="text-xs text-muted-foreground">
+                                    Message Category:
+                                </span>
+                                <Badge variant="secondary">
+                                    {selectedCategoryName}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                    {selectedCategoryDesc}
+                                </span>
+                            </div>
+                        )} */}
 
-                {data.attachments.length > 0 && (
-                    <AttachmentGroup className="flex flex-wrap items-start gap-2">
-                        {data.attachments.map((item, i) => {
-                            const url = URL.createObjectURL(item);
+                        {data.attachments.length > 0 && (
+                            <AttachmentGroup className="flex flex-wrap items-start gap-2">
+                                {data.attachments.map((item, i) => {
+                                    const url = URL.createObjectURL(item);
 
-                            const isImage = item.type.startsWith('image/');
-                            const isAudio = item.type.startsWith('audio/');
-                            const isVideo = item.type.startsWith('video/');
-                            const isPdf = item.type === 'application/pdf';
+                                    const isImage =
+                                        item.type.startsWith('image/');
+                                    const isAudio =
+                                        item.type.startsWith('audio/');
+                                    const isVideo =
+                                        item.type.startsWith('video/');
+                                    const isPdf =
+                                        item.type === 'application/pdf';
 
-                            const kindLabel = isPdf
-                                ? 'PDF'
-                                : isVideo
-                                  ? 'Video'
-                                  : isAudio
-                                    ? 'Audio'
-                                    : isImage
-                                      ? 'Image'
-                                      : 'File';
+                                    const kindLabel = isPdf
+                                        ? 'PDF'
+                                        : isVideo
+                                          ? 'Video'
+                                          : isAudio
+                                            ? 'Audio'
+                                            : isImage
+                                              ? 'Image'
+                                              : 'File';
 
-                            const sizeLabel = `${(
-                                item.size /
-                                1024 /
-                                1024
-                            ).toFixed(2)} MB`;
+                                    const sizeLabel = `${(
+                                        item.size /
+                                        1024 /
+                                        1024
+                                    ).toFixed(2)} MB`;
 
-                            return (
-                                <Attachment key={i} className="relative">
-                                    {isImage ? (
-                                        <AttachmentMedia variant="image">
-                                            <img
-                                                src={url}
-                                                alt={item.name}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        </AttachmentMedia>
-                                    ) : isVideo ? (
-                                        <AttachmentMedia variant="image">
-                                            <video
-                                                src={url}
-                                                className="h-full w-full object-cover"
-                                                muted
-                                            />
-                                        </AttachmentMedia>
-                                    ) : (
-                                        <AttachmentMedia>
-                                            {isPdf ? (
-                                                <FileText className="size-6 text-red-500" />
-                                            ) : isAudio ? (
-                                                <Music className="size-6 text-primary" />
-                                            ) : (
-                                                <FileIcon className="size-6 text-primary" />
-                                            )}
-                                        </AttachmentMedia>
-                                    )}
-
-                                    <AttachmentContent>
-                                        <AttachmentTitle>
-                                            {item.name}
-                                        </AttachmentTitle>
-                                        <AttachmentDescription>
-                                            {kindLabel} · {sizeLabel}
-                                        </AttachmentDescription>
-                                    </AttachmentContent>
-
-                                    <AttachmentActions>
-                                        <AttachmentAction
-                                            aria-label={`Remove ${item.name}`}
-                                            onClick={() =>
-                                                setData(
-                                                    'attachments',
-                                                    data.attachments.filter(
-                                                        (_, index) =>
-                                                            index !== i,
-                                                    ),
-                                                )
-                                            }
+                                    return (
+                                        <Attachment
+                                            key={i}
+                                            className="relative"
                                         >
-                                            <XIcon />
-                                        </AttachmentAction>
-                                    </AttachmentActions>
+                                            {isImage ? (
+                                                <AttachmentMedia variant="image">
+                                                    <img
+                                                        src={url}
+                                                        alt={item.name}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                </AttachmentMedia>
+                                            ) : isVideo ? (
+                                                <AttachmentMedia variant="image">
+                                                    <video
+                                                        src={url}
+                                                        className="h-full w-full object-cover"
+                                                        muted
+                                                    />
+                                                </AttachmentMedia>
+                                            ) : (
+                                                <AttachmentMedia>
+                                                    {isPdf ? (
+                                                        <FileText className="size-6 text-red-500" />
+                                                    ) : isAudio ? (
+                                                        <Music className="size-6 text-primary" />
+                                                    ) : (
+                                                        <FileIcon className="size-6 text-primary" />
+                                                    )}
+                                                </AttachmentMedia>
+                                            )}
 
-                                    <Badge
-                                        className="absolute -top-1 left-0 z-10"
-                                        variant="secondary"
-                                    >
-                                        {i + 1}
-                                    </Badge>
-                                </Attachment>
-                            );
-                        })}
-                    </AttachmentGroup>
-                )}
+                                            <AttachmentContent>
+                                                <AttachmentTitle>
+                                                    {item.name}
+                                                </AttachmentTitle>
+                                                <AttachmentDescription>
+                                                    {kindLabel} · {sizeLabel}
+                                                </AttachmentDescription>
+                                            </AttachmentContent>
 
-                <div className="flex flex-col gap-2">
-                    {openSuggestAi && (
-                        <div className="flex flex-col gap-2">
-                            {isSuggesting ? (
-                                <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
-                                    <Sparkles className="size-4 animate-spin text-primary" />
-                                    <span className="flex items-center gap-1">
-                                        Generating suggestions
-                                        <span className="inline-flex gap-0.5">
-                                            <span className="animate-bounce [animation-delay:0ms]">
-                                                .
-                                            </span>
-                                            <span className="animate-bounce [animation-delay:150ms]">
-                                                .
-                                            </span>
-                                            <span className="animate-bounce [animation-delay:300ms]">
-                                                .
+                                            <AttachmentActions>
+                                                <AttachmentAction
+                                                    aria-label={`Remove ${item.name}`}
+                                                    onClick={() =>
+                                                        setData(
+                                                            'attachments',
+                                                            data.attachments.filter(
+                                                                (_, index) =>
+                                                                    index !== i,
+                                                            ),
+                                                        )
+                                                    }
+                                                >
+                                                    <XIcon />
+                                                </AttachmentAction>
+                                            </AttachmentActions>
+
+                                            <Badge
+                                                className="absolute -top-1 left-0 z-10"
+                                                variant="secondary"
+                                            >
+                                                {i + 1}
+                                            </Badge>
+                                        </Attachment>
+                                    );
+                                })}
+                            </AttachmentGroup>
+                        )}
+
+                        {openSuggestAi && (
+                            <div className="flex flex-col gap-2">
+                                {isSuggesting ? (
+                                    <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+                                        <Sparkles className="size-4 animate-spin text-primary" />
+                                        <span className="flex items-center gap-1">
+                                            Generating suggestions
+                                            <span className="inline-flex gap-0.5">
+                                                <span className="animate-bounce [animation-delay:0ms]">
+                                                    .
+                                                </span>
+                                                <span className="animate-bounce [animation-delay:150ms]">
+                                                    .
+                                                </span>
+                                                <span className="animate-bounce [animation-delay:300ms]">
+                                                    .
+                                                </span>
                                             </span>
                                         </span>
-                                    </span>
-                                </div>
-                            ) : (
-                                suggestMessages.length > 0 && (
-                                    <>
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                            <Sparkles className="size-3 text-primary" />
-                                            <span>
-                                                AI Suggestions — Click to Use
-                                            </span>
-                                        </div>
+                                    </div>
+                                ) : (
+                                    suggestMessages.length > 0 && (
+                                        <>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <Sparkles className="size-3 text-primary" />
+                                                <span>
+                                                    AI Suggestions — Click to
+                                                    Use
+                                                </span>
+                                            </div>
 
-                                        <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
-                                            {suggestMessages.map(
-                                                (item, index) => {
-                                                    const style =
-                                                        getSuggestionStyle(
-                                                            item.title,
-                                                        );
-                                                    const Icon = style.icon;
+                                            <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
+                                                {suggestMessages.map(
+                                                    (item, index) => {
+                                                        const style =
+                                                            getSuggestionStyle(
+                                                                item.title,
+                                                            );
+                                                        const Icon = style.icon;
 
-                                                    return (
-                                                        <button
-                                                            key={index}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setData(
-                                                                    'content',
-                                                                    item.message,
-                                                                );
-                                                                setSuggestMessages(
-                                                                    [],
-                                                                );
-                                                                setOpenSuggestAi(
-                                                                    false,
-                                                                );
-                                                                setData(
-                                                                    'is_structured',
-                                                                    true,
-                                                                );
-                                                            }}
-                                                            className={`group flex cursor-pointer flex-col gap-1.5 rounded-lg border p-3 text-left transition-colors lg:w-[calc(33.333%-0.5rem)] ${style.bg} ${style.border}`}
-                                                        >
-                                                            <span
-                                                                className={`flex items-center gap-1.5 text-sm font-semibold ${style.color}`}
+                                                        return (
+                                                            <button
+                                                                key={index}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setData(
+                                                                        'content',
+                                                                        item.message,
+                                                                    );
+                                                                    setSuggestMessages(
+                                                                        [],
+                                                                    );
+                                                                    setOpenSuggestAi(
+                                                                        false,
+                                                                    );
+                                                                    setData(
+                                                                        'is_structured',
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                                className={`group flex cursor-pointer flex-col gap-1.5 rounded-lg border p-3 text-left transition-colors lg:w-[calc(33.333%-0.5rem)] ${style.bg} ${style.border}`}
                                                             >
-                                                                <Icon className="size-3.5" />
-                                                                {item.title}
-                                                            </span>
-                                                            <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                                                                {item.message}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                },
-                                            )}
-                                        </div>
-                                    </>
-                                )
-                            )}
-                        </div>
-                    )}
-
-                    <div className="flex grow items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                            <Tooltip>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                type="button"
-                                                disabled={
-                                                    processing ||
-                                                    data.attachments.length >= 5
-                                                }
-                                                className={`composer-icon-btn relative size-10 shrink-0 cursor-pointer rounded-full ${
-                                                    data.attachments.length > 0
-                                                        ? 'is-active'
-                                                        : ''
-                                                }`}
-                                            >
-                                                <Paperclip className="size-4.5" />
-                                                {data.attachments.length >
-                                                    0 && (
-                                                    <Badge
-                                                        className="absolute -top-1 -right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full border-none! bg-red-500 px-1 text-xs leading-none"
-                                                        variant={'outline'}
-                                                    >
-                                                        {
-                                                            data.attachments
-                                                                .length
-                                                        }
-                                                    </Badge>
+                                                                <span
+                                                                    className={`flex items-center gap-1.5 text-sm font-semibold ${style.color}`}
+                                                                >
+                                                                    <Icon className="size-3.5" />
+                                                                    {item.title}
+                                                                </span>
+                                                                <span className="text-sm text-muted-foreground group-hover:text-foreground">
+                                                                    {
+                                                                        item.message
+                                                                    }
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    },
                                                 )}
-                                            </Button>
-                                        </TooltipTrigger>
-                                    </DropdownMenuTrigger>
+                                            </div>
+                                        </>
+                                    )
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                                    <DropdownMenuContent
-                                        className="w-48"
-                                        align="start"
-                                    >
-                                        <DropdownMenuLabel>
-                                            Select Attachment Type
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            className="cursor-pointer"
-                                            onSelect={(e) => {
-                                                e.preventDefault();
-                                                document
-                                                    .getElementById(
-                                                        'attachments-image',
-                                                    )
-                                                    ?.click();
-                                            }}
-                                        >
-                                            <ImageIcon className="mr-2 size-4" />
-                                            Images
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer"
-                                            onSelect={(e) => {
-                                                e.preventDefault();
-                                                document
-                                                    .getElementById(
-                                                        'attachments-video',
-                                                    )
-                                                    ?.click();
-                                            }}
-                                        >
-                                            <Video className="mr-2 size-4" />
-                                            Videos
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer"
-                                            onSelect={(e) => {
-                                                e.preventDefault();
-                                                document
-                                                    .getElementById(
-                                                        'attachments-audio',
-                                                    )
-                                                    ?.click();
-                                            }}
-                                        >
-                                            <Music className="mr-2 size-4" />
-                                            Audio
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer"
-                                            onSelect={(e) => {
-                                                e.preventDefault();
-                                                document
-                                                    .getElementById(
-                                                        'attachments-file',
-                                                    )
-                                                    ?.click();
-                                            }}
-                                        >
-                                            <FileText className="mr-2 size-4" />
-                                            Files
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-
-                                <TooltipContent side="bottom">
-                                    <p>Add Attachment</p>
-                                </TooltipContent>
-                            </Tooltip>
-
-                            <Input
-                                type="file"
-                                hidden
-                                id="attachments-image"
-                                accept=".jpg,.png,.jpeg,.webp"
-                                multiple
-                                onChange={(e) => handleAttachmentChange(e)}
-                            />
-                            <Input
-                                type="file"
-                                hidden
-                                id="attachments-video"
-                                accept=".mp4,.mov,.webm,.mkv,.avi,.m4v"
-                                multiple
-                                onChange={(e) => handleAttachmentChange(e, 50)}
-                            />
-                            <Input
-                                type="file"
-                                hidden
-                                id="attachments-audio"
-                                accept=".mp3,.wav,.m4a,.ogg"
-                                multiple
-                                onChange={(e) => handleAttachmentChange(e)}
-                            />
-                            <Input
-                                type="file"
-                                hidden
-                                id="attachments-file"
-                                accept=".pdf,.doc,.docx,.txt,.csv,.xlsx"
-                                multiple
-                                onChange={(e) => handleAttachmentChange(e)}
-                            />
-
-                            {/* <Tooltip>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                type="button"
-                                                disabled={processing}
-                                                className={`composer-icon-btn relative size-10 shrink-0 cursor-pointer rounded-full ${
-                                                    data.category_id
-                                                        ? 'is-active'
-                                                        : ''
-                                                }`}
-                                            >
-                                                <Grid2X2Plus className="size-4.5" />
-                                                <Badge
-                                                    className="absolute -top-1 -right-1 z-10 flex h-5 min-w-5 animate-pulse items-center justify-center rounded-full border-none! bg-red-500 px-1 text-xs leading-none"
-                                                    variant={'outline'}
-                                                >
-                                                    {categories?.length}
-                                                </Badge>
-                                            </Button>
-                                        </TooltipTrigger>
-                                    </DropdownMenuTrigger>
-
-                                    <DropdownMenuContent
-                                        className="w-max"
-                                        align="start"
-                                    >
-                                        <DropdownMenuLabel>
-                                            Select Categories
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        {categories?.map((item) => (
-                                            <DropdownMenuCheckboxItem
-                                                key={item.id}
-                                                checked={
-                                                    data.category_id === item.id
-                                                }
-                                                onCheckedChange={(checked) => {
-                                                    setData(
-                                                        'category_id',
-                                                        checked
-                                                            ? item.id
-                                                            : null,
-                                                    );
-                                                }}
-                                            >
-                                                {item.name}
-                                            </DropdownMenuCheckboxItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-
-                                <TooltipContent side="bottom">
-                                    <p>Select Categories</p>
-                                </TooltipContent>
-                            </Tooltip> */}
-
-                            <Tooltip>
+                {/* Input Row — the only normal-flow child of the composer now.
+                    Attachments + AI toggle are consolidated behind ONE trigger
+                    (with a submenu for attachment types) instead of two separate
+                    buttons, freeing horizontal room for InputEmoji. */}
+                <div className="flex grow items-center gap-2">
+                    <Tooltip>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         type="button"
-                                        onClick={() =>
-                                            setOpenSuggestAi((prev) => {
-                                                if (prev) {
-                                                    setSuggestMessages([]);
-                                                }
-                                                return !prev;
-                                            })
-                                        }
                                         disabled={processing}
-                                        className={`composer-icon-btn size-10 shrink-0 cursor-pointer rounded-full ${
-                                            openSuggestAi ? 'is-active' : ''
+                                        className={`composer-icon-btn relative size-10 shrink-0 cursor-pointer rounded-full ${
+                                            data.attachments.length > 0 ||
+                                            openSuggestAi
+                                                ? 'is-active'
+                                                : ''
                                         }`}
                                     >
-                                        <Sparkles className="size-4.5" />
+                                        <Plus className="size-4.5" />
+                                        {data.attachments.length > 0 && (
+                                            <Badge
+                                                className="absolute -top-1 -right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full border-none! bg-red-500 px-1 text-xs leading-none"
+                                                variant={'outline'}
+                                            >
+                                                {data.attachments.length}
+                                            </Badge>
+                                        )}
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Toggle AI Suggestions</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
+                            </DropdownMenuTrigger>
 
-                        <div className="min-w-0 flex-1">
-                            <InputEmoji
-                                fontSize={15}
-                                placeholderColor="var(--muted-foreground)"
-                                placeholder="Type a message"
-                                cleanOnEnter
-                                keepOpened={true}
-                                value={data.content}
-                                onChange={(value) => {
-                                    if (value === '') {
-                                        setSuggestMessages([]);
-                                        setData('is_structured', false);
+                            <DropdownMenuContent
+                                className="w-56"
+                                align="start"
+                                side="top"
+                            >
+                                <DropdownMenuLabel>Options</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+
+                                {/* Attachments submenu */}
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger
+                                        disabled={
+                                            processing ||
+                                            data.attachments.length >= 5
+                                        }
+                                        className="cursor-pointer"
+                                    >
+                                        <Paperclip className="mr-2 size-4" />
+                                        <span className="flex-1">
+                                            Attachments
+                                        </span>
+                                        {data.attachments.length > 0 && (
+                                            <Badge
+                                                className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs leading-none"
+                                                variant="secondary"
+                                            >
+                                                {data.attachments.length}
+                                            </Badge>
+                                        )}
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                        <DropdownMenuSubContent className="w-44">
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onSelect={(e) => {
+                                                    e.preventDefault();
+                                                    document
+                                                        .getElementById(
+                                                            'attachments-image',
+                                                        )
+                                                        ?.click();
+                                                }}
+                                            >
+                                                <ImageIcon className="mr-2 size-4" />
+                                                Images
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onSelect={(e) => {
+                                                    e.preventDefault();
+                                                    document
+                                                        .getElementById(
+                                                            'attachments-video',
+                                                        )
+                                                        ?.click();
+                                                }}
+                                            >
+                                                <Video className="mr-2 size-4" />
+                                                Videos
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onSelect={(e) => {
+                                                    e.preventDefault();
+                                                    document
+                                                        .getElementById(
+                                                            'attachments-audio',
+                                                        )
+                                                        ?.click();
+                                                }}
+                                            >
+                                                <Music className="mr-2 size-4" />
+                                                Audio
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onSelect={(e) => {
+                                                    e.preventDefault();
+                                                    document
+                                                        .getElementById(
+                                                            'attachments-file',
+                                                        )
+                                                        ?.click();
+                                                }}
+                                            >
+                                                <FileText className="mr-2 size-4" />
+                                                Files
+                                            </DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                </DropdownMenuSub>
+
+                                {/* Category submenu — re-enable once `categories`
+                                    is passed back into this page's props.
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger className="cursor-pointer">
+                                        <Grid2X2Plus className="mr-2 size-4" />
+                                        <span className="flex-1">Category</span>
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                        <DropdownMenuSubContent className="w-56">
+                                            {categories?.map((item) => (
+                                                <DropdownMenuCheckboxItem
+                                                    key={item.id}
+                                                    checked={data.category_id === item.id}
+                                                    onCheckedChange={(checked) => {
+                                                        setData('category_id', checked ? item.id : null);
+                                                    }}
+                                                >
+                                                    {item.name}
+                                                </DropdownMenuCheckboxItem>
+                                            ))}
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                                */}
+
+                                <DropdownMenuSeparator />
+
+                                {/* AI Suggestions toggle */}
+                                <DropdownMenuCheckboxItem
+                                    checked={openSuggestAi}
+                                    disabled={processing}
+                                    onCheckedChange={(checked) =>
+                                        setOpenSuggestAi(() => {
+                                            if (!checked) {
+                                                setSuggestMessages([]);
+                                            }
+                                            return checked;
+                                        })
                                     }
-                                    setData('content', value);
-                                }}
-                                onEnter={() => {
-                                    if (
-                                        processing ||
-                                        data.content.trim() === ''
-                                    ) {
-                                        return;
-                                    }
+                                    className="cursor-pointer"
+                                >
+                                    <Sparkles className="mr-2 size-4" />
+                                    AI Suggestions
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                                    formRef.current?.requestSubmit();
-                                }}
-                            />
-                        </div>
+                        <TooltipContent side="top">
+                            <p>Attachments & AI suggestions</p>
+                        </TooltipContent>
+                    </Tooltip>
 
-                        <Button
-                            type="submit"
-                            className={`${!isMobile ? 'w-28' : 'size-10'} shrink-0 cursor-pointer rounded-full`}
-                            disabled={processing}
-                        >
-                            {processing ? (
-                                <>
-                                    <Spinner />
-                                    {!isMobile && 'Sending...'}
-                                </>
-                            ) : (
-                                <>
-                                    {!isMobile && 'Send'} <SendHorizontal />
-                                </>
-                            )}
-                        </Button>
+                    {/* Hidden inputs — one per type, so each opens the OS picker filtered correctly */}
+                    <Input
+                        type="file"
+                        hidden
+                        id="attachments-image"
+                        accept=".jpg,.png,.jpeg,.webp"
+                        multiple
+                        onChange={(e) => handleAttachmentChange(e)}
+                    />
+                    <Input
+                        type="file"
+                        hidden
+                        id="attachments-video"
+                        accept=".mp4,.mov,.webm,.mkv,.avi,.m4v"
+                        multiple
+                        onChange={(e) => handleAttachmentChange(e, 50)}
+                    />
+                    <Input
+                        type="file"
+                        hidden
+                        id="attachments-audio"
+                        accept=".mp3,.wav,.m4a,.ogg"
+                        multiple
+                        onChange={(e) => handleAttachmentChange(e)}
+                    />
+                    <Input
+                        type="file"
+                        hidden
+                        id="attachments-file"
+                        accept=".pdf,.doc,.docx,.txt,.csv,.xlsx"
+                        multiple
+                        onChange={(e) => handleAttachmentChange(e)}
+                    />
+
+                    <div className="min-w-0 flex-1">
+                        <InputEmoji
+                            fontSize={15}
+                            placeholderColor="var(--muted-foreground)"
+                            placeholder="Type a message"
+                            cleanOnEnter
+                            keepOpened={true}
+                            value={data.content}
+                            onChange={(value) => {
+                                if (value === '') {
+                                    setSuggestMessages([]);
+                                    setData('is_structured', false);
+                                }
+                                setData('content', value);
+                            }}
+                            onEnter={() => {
+                                if (processing || data.content.trim() === '') {
+                                    return;
+                                }
+
+                                formRef.current?.requestSubmit();
+                            }}
+                        />
                     </div>
+
+                    <Button
+                        type="submit"
+                        className={`${!isMobile ? 'w-28' : 'size-10'} shrink-0 cursor-pointer rounded-full`}
+                        disabled={processing}
+                    >
+                        {processing ? (
+                            <>
+                                <Spinner />
+                                {!isMobile && 'Sending...'}
+                            </>
+                        ) : (
+                            <>
+                                {!isMobile && 'Send'} <SendHorizontal />
+                            </>
+                        )}
+                    </Button>
                 </div>
             </form>
         </div>

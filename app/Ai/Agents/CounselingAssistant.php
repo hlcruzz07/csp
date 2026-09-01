@@ -22,7 +22,9 @@ class CounselingAssistant implements Agent, Conversational, HasTools
      * Get the instructions that the agent should follow.
      */
 
-    public function __construct(private string $categoryContext = '') {}
+    public function __construct(private string $categoryContext = '')
+    {
+    }
 
     public function instructions(): Stringable|string
     {
@@ -52,7 +54,7 @@ class CounselingAssistant implements Agent, Conversational, HasTools
             - Do not diagnose mental health conditions.
             - Do not give advice.
             - Do not respond as the counselor.
-            - Each message should be 40-120 words.
+            - Each message should be 40-100 words.
             - Return ONLY valid JSON, no markdown, no backticks.
 
             The JSON format must be:

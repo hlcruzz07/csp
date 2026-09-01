@@ -72,7 +72,7 @@ class CounselorResponse implements Agent, Conversational, HasTools
             - Do not promise outcomes you cannot guarantee.
             - Encourage further conversation when appropriate.
             - Keep a respectful and non-judgmental tone.
-            - Each response should be 50-150 words.
+            - Each response should be 50-100 words.
             - Return ONLY valid JSON.
             - No markdown.
             - No backticks.

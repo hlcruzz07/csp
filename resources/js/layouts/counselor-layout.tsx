@@ -49,18 +49,64 @@ export default function CounselorLayout({
             description: 'A new student has requested a counseling session.',
             time: 'Yesterday',
         },
+        {
+            id: 5,
+            title: 'New student request',
+            description: 'A new student has requested a counseling session.',
+            time: 'Yesterday',
+        },
+        {
+            id: 5,
+            title: 'New student request',
+            description: 'A new student has requested a counseling session.',
+            time: 'Yesterday',
+        },
+        {
+            id: 5,
+            title: 'New student request',
+            description: 'A new student has requested a counseling session.',
+            time: 'Yesterday',
+        },
+        {
+            id: 5,
+            title: 'New student request',
+            description: 'A new student has requested a counseling session.',
+            time: 'Yesterday',
+        },
+
+        {
+            id: 5,
+            title: 'New student request',
+            description: 'A new student has requested a counseling session.',
+            time: 'Yesterday',
+        },
+        {
+            id: 5,
+            title: 'New student request',
+            description: 'A new student has requested a counseling session.',
+            time: 'Yesterday',
+        },
     ];
     const isMobile = useIsMobile();
     const { conversations } = usePage<PageProps>().props;
     const sidebar = <ChatSidebar conversations={conversations} />;
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        // h-screen -> h-dvh: on mobile, 100vh is measured against the browser's
+        // largest possible viewport (address bar hidden), so when the address
+        // bar is actually showing, a h-screen container is taller than what's
+        // visible and the PAGE scrolls instead of the inner chat panes. h-dvh
+        // (dynamic viewport height) tracks the real visible height live as the
+        // browser chrome shows/hides.
+        <div className="flex h-dvh overflow-hidden">
             {isMobile ? (
                 <Sheet>
                     <div className="fixed top-4 left-3 z-50">
                         <SheetTrigger asChild>
-                            <button className="rounded-full p-2 transition hover:bg-muted">
+                            <button
+                                type="button"
+                                className="rounded-lg border p-2 transition hover:bg-muted"
+                            >
                                 <MenuIcon className="size-5" />
                             </button>
                         </SheetTrigger>

@@ -381,7 +381,7 @@
     height: 435px;
     width: 352px;
     overflow: hidden;
-    z-index: 10;
+    z-index: 100;
 }
 
 /* =========================
