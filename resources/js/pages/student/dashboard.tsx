@@ -443,11 +443,12 @@ export default function Dashboard() {
                     </Avatar>
 
                     <div className="flex flex-col text-sm md:text-base">
-                        <h1 className="font-semibold">
+                        <h1>
                             {normalizeName(counselor?.name || '')}
+                            {' - '}
+                            {normalizeName(counselor?.role || '')}
                         </h1>
-                        <small className="capitalized text-xs text-muted-foreground md:text-sm">
-                            {normalizeName(counselor?.role || '')} -{' '}
+                        <small className="capitalized">
                             {auth.user?.assigned_college?.name}{' '}
                             {`(${auth.user?.assigned_college?.code})`}
                         </small>

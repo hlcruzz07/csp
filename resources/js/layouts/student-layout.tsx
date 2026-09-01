@@ -143,7 +143,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
                     <div className="flex flex-col text-sm md:text-base">
                         <h1>
-                            {normalizeName(counselor?.name || '')}{' '}
+                            {normalizeName(counselor?.name || '')}
+                            {' - '}
                             {normalizeName(counselor?.role || '')}
                         </h1>
                         <small className="capitalized">
