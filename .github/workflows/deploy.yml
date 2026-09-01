@@ -125,13 +125,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq sshpass rsync
 
-          echo "Ensuring remote deployment directory exists..."
-          sshpass -e ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }} "mkdir -p htdocs/csp.scythelabs.online"
-
           echo "Starting file synchronization to CloudPanel server..."
-          sshpass -e rsync -avz --delete --timeout=120 \
+          sshpass -e rsync -avz --delete \
             -e "ssh -o StrictHostKeyChecking=no -p 22" \
-            --rsync-path="mkdir -p htdocs/csp.scythelabs.online && rsync" \
             --exclude=".git*" \
             --exclude=".github*" \
             --exclude="node_modules*" \
