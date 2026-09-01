@@ -92,10 +92,6 @@ jobs:
           REVERB_APP_ID=${{ secrets.REVERB_APP_ID }}
           REVERB_APP_KEY=${{ secrets.REVERB_APP_KEY }}
           REVERB_APP_SECRET=${{ secrets.REVERB_APP_SECRET }}
-
-          REVERB_SERVER_HOST=${{ secrets.REVERB_SERVER_HOST }}
-          REVERB_SERVER_PORT=${{ secrets.REVERB_SERVER_PORT }}
-
           REVERB_HOST=${{ secrets.REVERB_HOST }}
           REVERB_PORT=${{ secrets.REVERB_PORT }}
           REVERB_SCHEME=${{ secrets.REVERB_SCHEME }}
