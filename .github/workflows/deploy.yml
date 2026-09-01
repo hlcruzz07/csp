@@ -33,7 +33,7 @@ jobs:
         run: |
           cat <<EOF > .env
           APP_NAME=${{ secrets.APP_NAME }}
-          APP_ENV=local
+          APP_ENV=${{ secrets.APP_ENV }}
           APP_KEY=${{ secrets.APP_KEY }}
           APP_DEBUG=${{ secrets.APP_DEBUG }}
           APP_URL=${{ secrets.APP_URL }}
@@ -141,8 +141,9 @@ jobs:
             cd htdocs/csp.scythelabs.online/
             chmod -R 775 storage bootstrap/cache
             php artisan storage:link || true
-            php artisan migrate:fresh --force
-            php artisan db:seed
+            # php artisan migrate:fresh --force
+            # php artisan db:seed
+            php artisan migrate --force
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
