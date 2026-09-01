@@ -29,7 +29,7 @@ class GoogleController extends Controller
                     'message' => 'User Unauthorize.',
                 ]);
 
-                return redirect()->back();
+                return back();
             }
 
             $user->update([
@@ -50,7 +50,7 @@ class GoogleController extends Controller
                 'message' => 'Something went wrong completing info. Please try again',
             ]);
 
-            return redirect()->back();
+            return back();
         }
     }
 }
