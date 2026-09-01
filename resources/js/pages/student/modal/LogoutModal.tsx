@@ -46,7 +46,9 @@ export function LogoutModal({ open, setOpen }: LogoutModalProps) {
                         onClick={handleLogout}
                         className="w-full sm:w-max"
                     >
-                        <AlertDialogAction>Yes, Log Out</AlertDialogAction>
+                        <AlertDialogAction className="w-full sm:w-max">
+                            Yes, Log Out
+                        </AlertDialogAction>
                     </Link>
                 </AlertDialogFooter>
             </AlertDialogContent>
