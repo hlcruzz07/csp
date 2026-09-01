@@ -80,6 +80,7 @@ class AdminController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
             'assigned_college_id' => 'exists:colleges,id|string'
         ]);
 
@@ -87,17 +88,13 @@ class AdminController extends Controller
             ? fake()->userName()
             : 'counselor_' . Str::lower(Str::random(8));
 
-        $password = class_exists(\Faker\Factory::class)
-            ? fake()->password()
-            : Str::password(16);
-
         $counselor = User::create([
             'avatar' => null,
             'email' => $data['email'],
             'pseudonym' => $pseudonym,
-            'name' => $data['email'],
+            'name' => $data['name'],
             'is_anonymous' => false,
-            'password' => $password,
+            'password' => Hash::make($data['password']),
             'email_verified_at' => now(),
             'uuid' => Str::uuid(),
             'role' => UserRole::COUNSELOR

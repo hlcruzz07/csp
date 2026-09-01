@@ -439,7 +439,7 @@ function PromptExplorer() {
             </TabsList>
 
             {PROMPTS_BY_CATEGORY.map(({ key, prompts }) => (
-                <TabsContent key={key} value={key} className="mt-6">
+                <TabsContent key={key} value={key} className="mt-12 sm:mt-6">
                     <Carousel
                         opts={{ align: 'start', loop: false }}
                         className="w-full"
@@ -836,7 +836,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                     )}
 
                     <section className="border-t border-border py-14">
-                        <div className="mb-15 text-left sm:mb-8">
+                        <div className="mb-8 text-left">
                             <span className="gcis-mono text-xs text-primary uppercase">
                                 Not sure where to start?
                             </span>

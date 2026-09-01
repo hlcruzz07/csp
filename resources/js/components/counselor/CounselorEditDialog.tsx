@@ -215,7 +215,7 @@ export default function CounselorEditDialog({
                             onChange={(e) =>
                                 setData('new_password', e.target.value)
                             }
-                            placeholder="Leave blank to keep the current password"
+                            placeholder="Set a new password"
                             aria-invalid={!!errors.new_password}
                         />
                         {errors.new_password && (

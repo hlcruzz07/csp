@@ -35,12 +35,14 @@ interface CounselorAddDialogProps {
 interface CounselorAddFormState {
     name: string;
     email: string;
+    password: string;
     assigned_college_id: string;
 }
 
 const EMPTY_FORM: CounselorAddFormState = {
     name: '',
     email: '',
+    password: '',
     assigned_college_id: UNASSIGNED,
 };
 
@@ -122,6 +124,25 @@ export default function CounselorAddDialog({
                         {errors.email && (
                             <p className="text-sm text-destructive">
                                 {errors.email}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="password">
+                            Password <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            aria-invalid={!!errors.password}
+                            placeholder="Enter password"
+                        />
+                        {errors.password && (
+                            <p className="text-sm text-destructive">
+                                {errors.password}
                             </p>
                         )}
                     </div>
