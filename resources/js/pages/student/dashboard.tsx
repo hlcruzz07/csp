@@ -417,7 +417,7 @@ export default function Dashboard() {
     if (!hasConvo) return <MatchingCounselorModal />;
 
     return (
-        <div className="flex h-screen min-h-0 flex-col overflow-hidden">
+        <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
             <WelcomeModal open={isOpenWelcome} setOpen={setOpenWelcome} />
             {data.attachments.length > 0 && (
                 <SendingMessageDialog open={processing} progress={progress} />
