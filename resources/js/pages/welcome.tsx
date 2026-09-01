@@ -836,7 +836,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                     )}
 
                     <section className="border-t border-border py-14">
-                        <div className="mb-8 text-left">
+                        <div className="mb-15 text-left sm:mb-8">
                             <span className="gcis-mono text-xs text-primary uppercase">
                                 Not sure where to start?
                             </span>
