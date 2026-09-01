@@ -126,7 +126,7 @@ jobs:
           sudo apt-get install -y -qq sshpass rsync
 
           echo "Starting file synchronization to CloudPanel server..."
-          sshpass -e rsync -avz --delete \
+          sshpass -e rsync -rltz --delete \
             -e "ssh -o StrictHostKeyChecking=no -p 22" \
             --exclude=".git*" \
             --exclude=".github*" \
@@ -151,6 +151,7 @@ jobs:
             # Restart Reverb WebSocket server in background
             pkill -f "artisan reverb:start" || true
             nohup php artisan reverb:start --port=8081 --host=0.0.0.0 > storage/logs/reverb.log 2>&1 &
+
 
             # Restart Queue Worker in background
             pkill -f "artisan queue:work" || true
