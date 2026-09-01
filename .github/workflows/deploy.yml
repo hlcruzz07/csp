@@ -129,7 +129,7 @@ jobs:
           sshpass -e ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }} "mkdir -p htdocs/csp.scythelabs.online"
 
           echo "Starting file synchronization to CloudPanel server..."
-          sshpass -e rsync -avz --delete --timeout=120 --contimeout=60 \
+          sshpass -e rsync -avz --delete --timeout=120 \
             -e "ssh -o StrictHostKeyChecking=no -p 22" \
             --rsync-path="mkdir -p htdocs/csp.scythelabs.online && rsync" \
             --exclude=".git*" \
