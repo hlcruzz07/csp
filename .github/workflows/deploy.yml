@@ -100,7 +100,7 @@ jobs:
           REVERB_PORT=${{ secrets.REVERB_PORT }}
           REVERB_SCHEME=${{ secrets.REVERB_SCHEME }}
 
-          VITE_REVERB_APP_KEY=${{ secrets.VITE_REVERB_APP_KEY }}
+          VITE_REVERB_APP_KEY=${{ secrets.VITE_REVERB_APP_KEY }}  
           VITE_REVERB_HOST=${{ secrets.VITE_REVERB_HOST }}
           VITE_REVERB_PORT=${{ secrets.VITE_REVERB_PORT }}
           VITE_REVERB_SCHEME=${{ secrets.VITE_REVERB_SCHEME }}
