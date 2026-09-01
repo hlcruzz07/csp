@@ -17,30 +17,46 @@ class GoogleController extends Controller
 
     public function callback()
     {
-        $googleUser = Socialite::driver('google')->user();
-
         try {
+            // Get Google user
+            $googleUser = Socialite::driver('google')->user();
+
+            // Find existing user
             $user = User::where('email', $googleUser->getEmail())->first();
 
+            // User does not exist
             if (!$user) {
-
-                return back()->with('error', 'Unauthorize user.');
+                return redirect()
+                    ->route('login')
+                    ->with('error', 'Unauthorized user.');
             }
 
+            // Update user information
             $user->update([
                 'name' => $googleUser->getName(),
                 'avatar' => $googleUser->getAvatar(),
             ]);
 
-
+            // Login user
             Auth::login($user);
+
+            // Regenerate session
+            request()->session()->regenerate();
 
             return redirect('/dashboard');
 
         } catch (\Throwable $th) {
-            Log::error($th->getMessage());
 
-            return back()->with('error', 'Something went wrong, please try again.');
+            Log::error('Google Login Error', [
+                'message' => $th->getMessage(),
+                'file' => $th->getFile(),
+                'line' => $th->getLine(),
+                'trace' => $th->getTraceAsString(),
+            ]);
+
+            return redirect()
+                ->route('login')
+                ->with('error', 'Something went wrong, please try again.');
         }
     }
 }
