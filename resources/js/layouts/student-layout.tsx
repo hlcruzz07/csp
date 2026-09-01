@@ -142,9 +142,11 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                     </Avatar>
 
                     <div className="flex flex-col text-sm md:text-base">
-                        <h1>{normalizeName(counselor?.name || '')}</h1>
+                        <h1>
+                            {normalizeName(counselor?.name || '')}{' '}
+                            {normalizeName(counselor?.role || '')}
+                        </h1>
                         <small className="capitalized">
-                            {normalizeName(counselor?.role || '')} -{' '}
                             {auth.user?.assigned_college?.name}{' '}
                             {`(${auth.user?.assigned_college?.code})`}
                         </small>
