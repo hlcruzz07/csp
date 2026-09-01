@@ -28,7 +28,6 @@ import { ReactFormState } from 'react-dom/client';
 import InputError from '@/components/input-error';
 import { studentComplete } from '@/routes';
 import { handleErrors } from '@/lib/utils';
-import { useFlashToast } from '@/hooks/use-flash-toast';
 import {
     Tooltip,
     TooltipContent,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
@@ -23,7 +24,12 @@ class GoogleController extends Controller
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if (!$user) {
-                return redirect()->route('login')->with('error', 'User Unauthorize.');
+                Inertia::flash('toast', [
+                    'type' => 'error',
+                    'message' => 'User Unauthorize.',
+                ]);
+
+                return redirect()->back();
             }
 
             $user->update([
@@ -39,7 +45,12 @@ class GoogleController extends Controller
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
 
-            return redirect()->route('login')->with('error', 'Something went wrong.');
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Something went wrong completing info. Please try again',
+            ]);
+
+            return redirect()->back();
         }
     }
 }

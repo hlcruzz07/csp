@@ -121,6 +121,14 @@ export default function Dashboard() {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
 
+    // Messenger-style tap-to-reveal timestamp — only one message's timestamp
+    // is shown at a time, centered above its bubble. Tapping anywhere on the
+    // message row (avatar included) toggles it; attachment clicks are kept
+    // isolated so opening/closing their preview never affects this state.
+    const [activeTimestampId, setActiveTimestampId] = useState<number | null>(
+        null,
+    );
+
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     // True while we want the view to auto-stick to the bottom
@@ -413,6 +421,13 @@ export default function Dashboard() {
         setData('attachments', [...currentFiles, ...newFiles]);
     };
 
+    // Toggle the centered, Messenger-style timestamp for a message. Tapping
+    // the same message again (or tapping another message) closes/switches it —
+    // only one timestamp is visible at a time.
+    const toggleTimestamp = (id: number) => {
+        setActiveTimestampId((prev) => (prev === id ? null : id));
+    };
+
     if (!isCompleted) return <CompleteStudentModal />;
     if (!hasConvo) return <MatchingCounselorModal />;
 
@@ -471,7 +486,16 @@ export default function Dashboard() {
                         return (
                             <div
                                 key={index}
-                                className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : ''}`}
+                                className={`flex cursor-pointer items-end gap-2 select-none ${isMine ? 'flex-row-reverse' : ''}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => toggleTimestamp(message.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        toggleTimestamp(message.id);
+                                    }
+                                }}
                             >
                                 <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
                                     <AvatarImage
@@ -507,95 +531,109 @@ export default function Dashboard() {
                                         </small>
                                     </div>
 
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <div
-                                                className={`${message.is_structured && 'mt-4'}`}
-                                            >
-                                                {message.attachments?.length >
-                                                    0 && (
-                                                    <AttachmentsGrid
-                                                        attachments={
-                                                            message.attachments
-                                                        }
-                                                    />
-                                                )}
-                                                {message.content && (
-                                                    <div
-                                                        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-                                                    >
-                                                        <div
-                                                            className={`relative max-w-full ${
-                                                                message.is_structured
-                                                                    ? 'group'
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {message.is_structured && (
-                                                                <span className="absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
-                                                                    <Sparkles className="h-3 w-3" />
-                                                                    AI Suggested
-                                                                </span>
-                                                            )}
-
-                                                            {message.is_structured && (
-                                                                <>
-                                                                    <Sparkles className="absolute -top-2 -left-2 h-4 w-4 text-yellow-400 drop-shadow-sm" />
-                                                                    <Sparkles className="absolute -top-1 -right-2 h-3 w-3 text-violet-400 opacity-80" />
-                                                                    <Sparkles className="absolute -right-1 bottom-3 h-3.5 w-3.5 text-sky-400 opacity-80" />
-                                                                </>
-                                                            )}
-
-                                                            <p
-                                                                className={`p-3 px-4 text-sm font-medium transition-all sm:text-base ${
-                                                                    isMine
-                                                                        ? 'overflow-hidden rounded-t-3xl rounded-tr-3xl rounded-br-sm rounded-bl-3xl bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                                                                        : 'rounded-t-3xl rounded-tl-3xl rounded-br-3xl rounded-bl-sm bg-background'
-                                                                } ${
-                                                                    message.is_structured
-                                                                        ? 'shadow-[0_0_18px_rgba(168,85,247,0.25)] ring-2 ring-violet-300/60'
-                                                                        : ''
-                                                                } `}
-                                                            >
-                                                                {
-                                                                    message.content
-                                                                }
-                                                            </p>
-                                                            {message.category && (
-                                                                <div className="mt-1 flex justify-end">
-                                                                    <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
-                                                                        <Tag className="h-3 w-3" />
-                                                                        {
-                                                                            message
-                                                                                .category
-                                                                                .name
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent
-                                            side={
-                                                isMobile
-                                                    ? 'top'
-                                                    : isMine
-                                                      ? 'left'
-                                                      : 'right'
-                                            }
-                                        >
-                                            <small className="text-xs md:text-sm">
+                                    {/* Messenger-style timestamp: hidden by default,
+                                        centered above the bubble, revealed on tap/click
+                                        anywhere on the message row (avatar included).
+                                        Replaces the old hover Tooltip, which doesn't
+                                        work on touch devices. */}
+                                    <div className="flex w-full flex-col items-center">
+                                        {activeTimestampId === message.id && (
+                                            <span className="mb-1 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
                                                 {dayjs(
                                                     message.created_at,
                                                 ).format(
                                                     'MMM D, YYYY - hh:mm A',
                                                 )}
-                                            </small>
-                                        </TooltipContent>
-                                    </Tooltip>
+                                            </span>
+                                        )}
+
+                                        <div
+                                            className={`${message.is_structured && 'mt-4'}`}
+                                        >
+                                            {message.attachments?.length >
+                                                0 && (
+                                                // Attachments (images, videos,
+                                                // audio, files) open their own
+                                                // preview/modal on click. That
+                                                // click still bubbles through
+                                                // the React tree even when the
+                                                // modal renders in a portal, so
+                                                // without stopping it here,
+                                                // opening AND closing the modal
+                                                // would each re-trigger
+                                                // toggleTimestamp on the row —
+                                                // this keeps attachment
+                                                // interactions fully isolated
+                                                // from the timestamp toggle,
+                                                // regardless of attachment type.
+                                                <div
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
+                                                >
+                                                    <AttachmentsGrid
+                                                        attachments={
+                                                            message.attachments
+                                                        }
+                                                    />
+                                                </div>
+                                            )}
+                                            {message.content && (
+                                                <div
+                                                    className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                >
+                                                    <div
+                                                        className={`relative max-w-full ${
+                                                            message.is_structured
+                                                                ? 'group'
+                                                                : ''
+                                                        }`}
+                                                    >
+                                                        {message.is_structured && (
+                                                            <span className="absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+                                                                <Sparkles className="h-3 w-3" />
+                                                                AI Suggested
+                                                            </span>
+                                                        )}
+
+                                                        {message.is_structured && (
+                                                            <>
+                                                                <Sparkles className="absolute -top-2 -left-2 h-4 w-4 text-yellow-400 drop-shadow-sm" />
+                                                                <Sparkles className="absolute -top-1 -right-2 h-3 w-3 text-violet-400 opacity-80" />
+                                                                <Sparkles className="absolute -right-1 bottom-3 h-3.5 w-3.5 text-sky-400 opacity-80" />
+                                                            </>
+                                                        )}
+
+                                                        <p
+                                                            className={`p-3 px-4 text-sm font-medium transition-all sm:text-base ${
+                                                                isMine
+                                                                    ? 'overflow-hidden rounded-t-3xl rounded-tr-3xl rounded-br-sm rounded-bl-3xl bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                                                                    : 'rounded-t-3xl rounded-tl-3xl rounded-br-3xl rounded-bl-sm bg-background'
+                                                            } ${
+                                                                message.is_structured
+                                                                    ? 'shadow-[0_0_18px_rgba(168,85,247,0.25)] ring-2 ring-violet-300/60'
+                                                                    : ''
+                                                            } `}
+                                                        >
+                                                            {message.content}
+                                                        </p>
+                                                        {message.category && (
+                                                            <div className="mt-1 flex justify-end">
+                                                                <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
+                                                                    <Tag className="h-3 w-3" />
+                                                                    {
+                                                                        message
+                                                                            .category
+                                                                            .name
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         );
