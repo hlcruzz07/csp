@@ -510,7 +510,16 @@ export default function CounselorConversationShow() {
                         return (
                             <div
                                 key={index}
-                                className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : ''}`}
+                                className={`flex cursor-pointer items-end gap-2 select-none ${isMine ? 'flex-row-reverse' : ''}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => toggleTimestamp(message.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        toggleTimestamp(message.id);
+                                    }
+                                }}
                             >
                                 <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
                                     <AvatarImage
@@ -553,21 +562,7 @@ export default function CounselorConversationShow() {
                                         )}
 
                                         <div
-                                            className={`w-full cursor-pointer select-none ${message.is_structured && 'mt-4'}`}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() =>
-                                                toggleTimestamp(message.id)
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    e.key === 'Enter' ||
-                                                    e.key === ' '
-                                                ) {
-                                                    e.preventDefault();
-                                                    toggleTimestamp(message.id);
-                                                }
-                                            }}
+                                            className={`w-full ${message.is_structured && 'mt-4'}`}
                                         >
                                             {message.attachments?.length >
                                                 0 && (
