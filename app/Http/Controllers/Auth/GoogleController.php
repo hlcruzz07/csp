@@ -28,7 +28,7 @@ class GoogleController extends Controller
             if (!$user) {
                 return redirect()
                     ->route('login')
-                    ->with('error', 'Unauthorized user.');
+                    ->with('error', 'Unauthorized Google Account');
             }
 
             // Update user information
