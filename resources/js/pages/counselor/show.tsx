@@ -571,11 +571,31 @@ export default function CounselorConversationShow() {
                                         >
                                             {message.attachments?.length >
                                                 0 && (
-                                                <AttachmentsGrid
-                                                    attachments={
-                                                        message.attachments
+                                                // Attachments (images, videos,
+                                                // audio, files) open their own
+                                                // preview/modal on click. That
+                                                // click still bubbles through
+                                                // the React tree even when the
+                                                // modal renders in a portal, so
+                                                // without stopping it here,
+                                                // opening AND closing the modal
+                                                // would each re-trigger
+                                                // toggleTimestamp on the parent
+                                                // — this keeps attachment
+                                                // interactions fully isolated
+                                                // from the timestamp toggle,
+                                                // regardless of attachment type.
+                                                <div
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
                                                     }
-                                                />
+                                                >
+                                                    <AttachmentsGrid
+                                                        attachments={
+                                                            message.attachments
+                                                        }
+                                                    />
+                                                </div>
                                             )}
                                             {message.content && (
                                                 <div
