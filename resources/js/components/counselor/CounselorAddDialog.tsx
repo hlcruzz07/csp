@@ -136,7 +136,9 @@ export default function CounselorAddDialog({
                             id="password"
                             type="password"
                             value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
+                            onChange={(e) =>
+                                setData('password', e.target.value)
+                            }
                             aria-invalid={!!errors.password}
                             placeholder="Enter password"
                         />
