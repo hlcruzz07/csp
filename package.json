@@ -60,6 +60,7 @@
         "cmdk": "^1.1.1",
         "concurrently": "^9.0.1",
         "dayjs": "^1.11.21",
+        "driver.js": "^1.8.0",
         "embla-carousel-react": "^8.6.0",
         "globals": "^15.14.0",
         "input-otp": "^1.4.2",

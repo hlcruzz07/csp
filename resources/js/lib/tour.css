@@ -1,0 +1,76 @@
+.driver-tour-popover {
+    background: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 45px -25px rgba(0, 0, 0, 0.35);
+    font-family: inherit;
+    max-width: 320px;
+}
+
+.driver-tour-popover .driver-popover-title {
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.driver-tour-popover .driver-popover-description {
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.driver-tour-popover .driver-popover-progress-text {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.driver-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,
+.driver-tour-popover .driver-popover-arrow {
+    border-color: var(--background);
+}
+
+.driver-tour-popover button.driver-popover-next-btn,
+.driver-tour-popover button.driver-popover-prev-btn {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    border-radius: 9999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    text-shadow: none;
+}
+
+.driver-tour-popover button.driver-popover-prev-btn {
+    background: transparent;
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
+}
+
+.driver-tour-popover button.driver-popover-close-btn {
+    color: var(--muted-foreground);
+}
+
+.driver-active-element {
+    position: relative;
+    z-index: 2147483647;
+    isolation: isolate;
+    border-radius: 0.75rem;
+    outline: 3px solid rgba(59, 130, 246, 0.9);
+    outline-offset: 4px;
+    box-shadow:
+        0 0 0 6px rgba(59, 130, 246, 0.2),
+        0 18px 36px -16px rgba(59, 130, 246, 0.45);
+    transition:
+        box-shadow 0.2s ease,
+        outline 0.2s ease;
+}
+
+.driver-overlay {
+    z-index: 1000 !important;
+    background: rgba(15, 23, 42, 0.55);
+}
+
+.driver-stage {
+    z-index: 1001 !important;
+}

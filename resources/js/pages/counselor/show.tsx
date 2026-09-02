@@ -40,6 +40,7 @@ import {
     FileText,
     Heart,
     Grid2X2Plus,
+    HelpCircle,
     ImageIcon,
     Music,
     Paperclip,
@@ -69,6 +70,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import SendingMessageDialog from '@/components/SendingMessage';
+import { startTour } from '@/lib/tour';
 
 type Message = {
     id: number;
@@ -437,6 +439,50 @@ export default function CounselorConversationShow() {
         setActiveTimestampId((prev) => (prev === id ? null : id));
     };
 
+    // ---- Tour ----
+    // Only ever runs when the "?" button is clicked — no auto-start, no
+    // persisted dismissal state.
+    const runComposerTour = () => {
+        startTour({
+            steps: [
+                {
+                    element: '#tour-composer-options',
+                    popover: {
+                        title: 'Add attachments & AI help',
+                        description:
+                            'Use this button to attach files, images, audio, or turn AI suggestions on for support while drafting a response.',
+                        side: 'top' as const,
+                    },
+                },
+                {
+                    element: '#tour-composer-input',
+                    popover: {
+                        title: 'Message input box',
+                        description:
+                            'This is where you type the student reply. You can also pick an AI suggestion and edit it before sending.',
+                        side: 'top' as const,
+                    },
+                },
+                {
+                    element: '#tour-composer-send',
+                    popover: {
+                        title: 'Send message',
+                        description:
+                            'Press this when your reply is ready to send it to the student.',
+                        side: 'top' as const,
+                    },
+                },
+            ],
+            config: {
+                stagePadding: 10,
+                showProgress: true,
+                nextBtnText: 'Next',
+                prevBtnText: 'Back',
+                doneBtnText: 'Done',
+            },
+        });
+    };
+
     return (
         <div className="flex h-full flex-col overflow-hidden bg-background">
             {/* Header */}
@@ -482,6 +528,17 @@ export default function CounselorConversationShow() {
                         </small>
                     </div>
                 </div>
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    className="rounded-full"
+                    onClick={runComposerTour}
+                    title="Show tutorial"
+                >
+                    <HelpCircle className="size-4.5" />
+                </Button>
             </div>
 
             {/* Messages — h-full swapped for min-h-0 flex-1: inside a flex-col
@@ -898,6 +955,7 @@ export default function CounselorConversationShow() {
                             <DropdownMenuTrigger asChild>
                                 <TooltipTrigger asChild>
                                     <Button
+                                        id="tour-composer-options"
                                         variant="ghost"
                                         size="icon"
                                         type="button"
@@ -1100,7 +1158,7 @@ export default function CounselorConversationShow() {
                         onChange={(e) => handleAttachmentChange(e)}
                     />
 
-                    <div className="min-w-0 flex-1">
+                    <div id="tour-composer-input" className="min-w-0 flex-1">
                         <InputEmoji
                             fontSize={15}
                             placeholderColor="var(--muted-foreground)"
@@ -1126,6 +1184,7 @@ export default function CounselorConversationShow() {
                     </div>
 
                     <Button
+                        id="tour-composer-send"
                         type="submit"
                         className={`${!isMobile ? 'w-28' : 'size-10'} shrink-0 cursor-pointer rounded-full`}
                         disabled={processing}

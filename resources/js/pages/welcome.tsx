@@ -7,14 +7,17 @@ import {
     GraduationCap,
     HeartHandshake,
     HeartPulse,
+    ImagePlus,
     Lock,
     Menu,
     MessagesSquare,
+    Paperclip,
     PenLine,
     Quote,
     ShieldCheck,
     Sparkles,
     Users2,
+    Video,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ThemeButton from '@/components/ThemeButton';
@@ -60,10 +63,18 @@ import {
 import { Counselor } from '@/types/entities';
 import { capitalizeString } from '@/lib/utils';
 
-type DemoStage = 'draft' | 'sorting' | 'sent';
+type DemoStage = 'draft' | 'sorting' | 'suggesting' | 'sent';
 
 const DRAFT_TEXT =
     "I've been falling behind on requirements and I don't know how to bring it up with my adviser...";
+
+/**
+ * Sample AI suggestion shown in the hero demo. Tied to the "Academic"
+ * category that the demo settles on — swap this out (or make it
+ * category-aware) if the demo ever cycles through more than one category.
+ */
+const AI_SUGGESTION_TEXT =
+    "Try leading with how it's affecting you, then ask your adviser for a short check-in this week.";
 
 /**
  * Real counselor record, expected to come from the backend as an Inertia
@@ -116,10 +127,12 @@ function resolveAvatarUrl(avatar: string | null | undefined, size = 600) {
     return `/storage/${path}`;
 }
 /**
- * Small looping demo that embodies the system's core mechanic: a student
- * writes freely, the entry gets organized into a concern category, then
- * it's routed privately to their assigned counselor. This mirrors the
- * "psychosocial concern expression" + "confidentiality" domains directly.
+ * Small looping demo that embodies the system's core mechanics: a student
+ * writes freely, the entry gets organized into a concern category, an
+ * optional AI suggestion offers help with phrasing, and the message is
+ * routed privately to their assigned counselor. This mirrors the
+ * "psychosocial concern expression", "AI-assisted phrasing", and
+ * "confidentiality" domains directly.
  */
 function ExpressionDemo() {
     const [stage, setStage] = useState<DemoStage>('draft');
@@ -129,6 +142,7 @@ function ExpressionDemo() {
         let charIndex = 0;
         let typingId: ReturnType<typeof setInterval>;
         let sortingTimeout: ReturnType<typeof setTimeout>;
+        let suggestingTimeout: ReturnType<typeof setTimeout>;
         let sentTimeout: ReturnType<typeof setTimeout>;
         let resetTimeout: ReturnType<typeof setTimeout>;
 
@@ -147,11 +161,15 @@ function ExpressionDemo() {
                     sortingTimeout = setTimeout(() => {
                         setStage('sorting');
 
-                        sentTimeout = setTimeout(() => {
-                            setStage('sent');
+                        suggestingTimeout = setTimeout(() => {
+                            setStage('suggesting');
 
-                            resetTimeout = setTimeout(runCycle, 3200);
-                        }, 1600);
+                            sentTimeout = setTimeout(() => {
+                                setStage('sent');
+
+                                resetTimeout = setTimeout(runCycle, 3200);
+                            }, 1800);
+                        }, 900);
                     }, 500);
                 }
             }, 28);
@@ -162,6 +180,7 @@ function ExpressionDemo() {
         return () => {
             clearInterval(typingId);
             clearTimeout(sortingTimeout);
+            clearTimeout(suggestingTimeout);
             clearTimeout(sentTimeout);
             clearTimeout(resetTimeout);
         };
@@ -189,7 +208,17 @@ function ExpressionDemo() {
                 />
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-1.5">
+            {/* Attachment affordance — always visible, mirrors the real composer */}
+            <div className="mt-3 flex items-center gap-3 border-t border-border pt-2.5 text-muted-foreground/60">
+                <ImagePlus className="h-3.5 w-3.5" />
+                <Video className="h-3.5 w-3.5" />
+                <Paperclip className="h-3.5 w-3.5" />
+                <span className="text-[10.5px]">
+                    Attach photos, videos, or files
+                </span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-1.5">
                 {['Academic', 'Personal', 'Emotional'].map((tag) => {
                     const isActive = stage !== 'draft' && tag === 'Academic';
 
@@ -209,8 +238,25 @@ function ExpressionDemo() {
                 })}
             </div>
 
+            {/* AI suggestion bubble — appears once the entry is categorized */}
             <div
-                className={`mt-4 flex items-center gap-2 border-t border-border pt-3 text-[12px] text-primary transition-opacity duration-500 ${
+                className={`mt-3 flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 p-2.5 transition-all duration-500 ${
+                    stage === 'suggesting' || stage === 'sent'
+                        ? 'translate-y-0 opacity-100'
+                        : 'pointer-events-none -translate-y-1 opacity-0'
+                }`}
+            >
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                <p className="text-[12px] leading-relaxed text-foreground/80">
+                    <span className="font-medium text-primary">
+                        AI suggestion:{' '}
+                    </span>
+                    {AI_SUGGESTION_TEXT}
+                </p>
+            </div>
+
+            <div
+                className={`mt-3 flex items-center gap-2 border-t border-border pt-3 text-[12px] text-primary transition-opacity duration-500 ${
                     stage === 'sent' ? 'opacity-100' : 'opacity-0'
                 }`}
             >
@@ -521,9 +567,10 @@ function TestimonialGrid() {
 
 /**
  * FAQ content describes how the product actually behaves per the rest of
- * this page's copy (confidentiality, categorization, threaded messages).
- * Update the counselor-reassignment and crisis-routing answers to match
- * your real backend/support process before shipping.
+ * this page's copy (confidentiality, categorization, threaded messages,
+ * AI suggestions, attachments). Update the counselor-reassignment and
+ * crisis-routing answers to match your real backend/support process
+ * before shipping.
  */
 const FAQS: { q: string; a: string }[] = [
     {
@@ -542,10 +589,17 @@ const FAQS: { q: string; a: string }[] = [
         q: 'Can I request a different counselor?',
         a: 'No. Your counselor is assigned based on your college, so you’ll need to work with your assigned counselor.',
     },
-
     {
         q: 'Do my conversations disappear after I close the tab?',
         a: 'No. Conversations are threaded and saved, so you can pick up exactly where you left off, on your own time.',
+    },
+    {
+        q: 'Does the AI read what I write?',
+        a: 'AI suggestions are optional and can be toggled off anytime. When enabled, they help you find the words based on what you typed or the category you picked. Your counselor is still the only person who reads your entries.',
+    },
+    {
+        q: 'Can I send photos or files?',
+        a: 'Yes. You can attach photos, videos, or files to any message if it helps explain your situation.',
     },
 ];
 
@@ -592,7 +646,12 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
 
                 <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-6 lg:px-10">
                     <header className="flex items-start justify-between opacity-100 transition-opacity duration-700 md:items-center starting:opacity-0">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-center">
+                            <img
+                                src="/logo.webp"
+                                alt="Logo"
+                                className="hidden size-11 sm:block"
+                            />
                             <span className="gcis-display text-xl font-extrabold tracking-tight text-primary">
                                 Counseling Support Platform
                             </span>
@@ -671,7 +730,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                     </header>
 
                     <main className="flex flex-1 flex-col items-center justify-center gap-14 py-10 lg:flex-row lg:items-center lg:gap-20 lg:py-0">
-                        <div className="max-w-xl opacity-100 transition-opacity delay-150 duration-700 starting:translate-y-3 starting:opacity-0">
+                        <div className="max-w-xl opacity-100 transition-opacity delay-150 duration-700 starting:opacity-0">
                             <div className="flex flex-wrap items-center gap-2">
                                 {TRUST_MARKERS.map(({ icon: Icon, label }) => (
                                     <Badge
@@ -734,12 +793,22 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                     </main>
 
                     <section className="mt-10 border-t border-border py-14">
-                        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                             {[
                                 {
                                     icon: PenLine,
                                     title: 'Say it your way',
                                     body: 'Guided prompts help you organize academic, personal, or emotional concerns before you send them. No blank page.',
+                                },
+                                {
+                                    icon: Sparkles,
+                                    title: 'AI-assisted phrasing',
+                                    body: "Toggle on AI suggestions to get help finding the words, based on what you've typed or the category you picked.",
+                                },
+                                {
+                                    icon: Paperclip,
+                                    title: 'Attach what you need',
+                                    body: 'Add photos, videos, or files to your conversation so your counselor has the full picture.',
                                 },
                                 {
                                     icon: Clock3,
@@ -795,7 +864,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                                 {
                                     n: '01',
                                     title: 'Share what’s on your mind',
-                                    body: 'Write freely, or use a guided prompt to organize your thoughts.',
+                                    body: 'Write freely, or use a guided prompt with optional AI suggestions to organize your thoughts.',
                                 },
                                 {
                                     n: '02',

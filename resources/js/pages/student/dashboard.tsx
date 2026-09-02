@@ -16,6 +16,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { startTour } from '@/lib/tour';
 import {
     checkConversation,
     fetchMessages,
@@ -41,6 +42,7 @@ import {
     FilePlus2Icon,
     FileText,
     Grid2X2Plus,
+    HelpCircle,
     ImageIcon,
     ImagePlusIcon,
     Music,
@@ -428,6 +430,65 @@ export default function Dashboard() {
         setActiveTimestampId((prev) => (prev === id ? null : id));
     };
 
+    const runComposerTour = () => {
+        startTour({
+            steps: [
+                {
+                    element: '#tour-assigned-counselor',
+                    popover: {
+                        title: 'Your assigned counselor',
+                        description:
+                            'This section shows the counselor assigned to you and the college they support.',
+                        side: 'bottom' as const,
+                    },
+                },
+                {
+                    element: '#tour-profile-drawer',
+                    popover: {
+                        title: 'Profile drawer',
+                        description:
+                            'Open this button to view or update your student profile and account settings.',
+                        side: 'bottom' as const,
+                    },
+                },
+                {
+                    element: '#tour-composer-options',
+                    popover: {
+                        title: 'Add attachments & AI help',
+                        description:
+                            'Use this button to attach files, images, audio, or enable AI suggestions while drafting your message.',
+                        side: 'top' as const,
+                    },
+                },
+                {
+                    element: '#tour-composer-input',
+                    popover: {
+                        title: 'Message input box',
+                        description:
+                            'Type your message here. You can also choose an AI suggestion and edit it before sending.',
+                        side: 'top' as const,
+                    },
+                },
+                {
+                    element: '#tour-composer-send',
+                    popover: {
+                        title: 'Send message',
+                        description:
+                            "Press this when your reply is ready to send it to your counselor.",
+                        side: 'top' as const,
+                    },
+                },
+            ],
+            config: {
+                stagePadding: 10,
+                showProgress: true,
+                nextBtnText: 'Next',
+                prevBtnText: 'Back',
+                doneBtnText: 'Done',
+            },
+        });
+    };
+
     if (!isCompleted) return <CompleteStudentModal />;
     if (!hasConvo) return <MatchingCounselorModal />;
 
@@ -440,7 +501,10 @@ export default function Dashboard() {
 
             {/* Header */}
             <div className="flex items-center justify-between p-3">
-                <div className="flex cursor-pointer items-center gap-2">
+                <div
+                    id="tour-assigned-counselor"
+                    className="flex cursor-pointer items-center gap-2"
+                >
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
                             src={resolveAvatarUrl(counselor?.avatar)}
@@ -466,7 +530,23 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <StudentDrawer onSave={() => loadMessages(1)} />
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        className="rounded-full"
+                        onClick={runComposerTour}
+                        title="Show tutorial"
+                    >
+                        <HelpCircle className="size-4.5" />
+                    </Button>
+
+                    <StudentDrawer
+                        id="tour-profile-drawer"
+                        onSave={() => loadMessages(1)}
+                    />
+                </div>
             </div>
 
             {/* Messages */}
@@ -877,6 +957,7 @@ export default function Dashboard() {
                             <DropdownMenuTrigger asChild>
                                 <TooltipTrigger asChild>
                                     <Button
+                                        id="tour-composer-options"
                                         variant="ghost"
                                         size="icon"
                                         type="button"
@@ -1096,7 +1177,7 @@ export default function Dashboard() {
                         onChange={(e) => handleAttachmentChange(e)}
                     />
 
-                    <div className="min-w-0 flex-1">
+                    <div id="tour-composer-input" className="min-w-0 flex-1">
                         <InputEmoji
                             fontSize={15}
                             placeholderColor="var(--muted-foreground)"
@@ -1122,6 +1203,7 @@ export default function Dashboard() {
                     </div>
 
                     <Button
+                        id="tour-composer-send"
                         type="submit"
                         className={`${!isMobile ? 'w-28' : 'size-10'} shrink-0 cursor-pointer rounded-full`}
                         disabled={

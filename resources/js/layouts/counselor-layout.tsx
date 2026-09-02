@@ -1,12 +1,14 @@
 import { ChatSidebar } from '@/components/counselor/ChatSidebar';
 import { NotificationDropdown } from '@/components/counselor/NotificationDropdown';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { startTour } from '@/lib/tour';
 import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
-import { Conversation, Message, Notification } from '@/types/entities';
+import { Conversation, Notification } from '@/types/entities';
 import { usePage } from '@inertiajs/react';
-import { MenuIcon } from 'lucide-react';
+import { HelpCircle, MenuIcon } from 'lucide-react';
+
 type PageProps = {
     conversations: Conversation[];
 };
@@ -49,61 +51,74 @@ export default function CounselorLayout({
             description: 'A new student has requested a counseling session.',
             time: 'Yesterday',
         },
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
-
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
     ];
+
     const isMobile = useIsMobile();
     const { conversations } = usePage<PageProps>().props;
-    const sidebar = <ChatSidebar conversations={conversations} />;
+
+    const sidebar = (
+        <div id="tour-chat-sidebar">
+            <ChatSidebar conversations={conversations} />
+        </div>
+    );
+
+    const runTour = () => {
+        const steps = isMobile
+            ? [
+                  {
+                      element: '#tour-menu-toggle',
+                      popover: {
+                          title: 'Your conversations',
+                          description:
+                              'Tap here anytime to open your list of student conversations.',
+                          side: 'bottom' as const,
+                      },
+                  },
+              ]
+            : [
+                  {
+                      element: '#tour-chat-sidebar',
+                      popover: {
+                          title: 'Your conversations',
+                          description:
+                              'All conversations assigned to you show up here, sorted by recent activity.',
+                          side: 'right' as const,
+                      },
+                  },
+              ];
+
+        steps.push(
+            {
+                element: '#tour-notifications',
+                popover: {
+                    title: 'Notifications',
+                    description:
+                        'New assignments, messages, and reminders land here.',
+                    side: 'bottom' as const,
+                },
+            },
+            {
+                element: '#tour-student-drawer',
+                popover: {
+                    title: 'Personal details',
+                    description:
+                        "Open this to see the current student's profile without leaving the conversation.",
+                    side: 'bottom' as const,
+                },
+            },
+        );
+
+        startTour({ steps });
+    };
 
     return (
-        // h-screen -> h-dvh: on mobile, 100vh is measured against the browser's
-        // largest possible viewport (address bar hidden), so when the address
-        // bar is actually showing, a h-screen container is taller than what's
-        // visible and the PAGE scrolls instead of the inner chat panes. h-dvh
-        // (dynamic viewport height) tracks the real visible height live as the
-        // browser chrome shows/hides.
         <div className="flex h-dvh overflow-hidden">
             {isMobile ? (
                 <Sheet>
                     <div className="fixed top-4 left-3 z-50">
                         <SheetTrigger asChild>
                             <button
+                                id="tour-menu-toggle"
                                 type="button"
                                 className="rounded-lg border p-2 transition hover:bg-muted"
                             >
@@ -120,10 +135,27 @@ export default function CounselorLayout({
             )}
             <div className="flex grow flex-col overflow-hidden bg-secondary md:gap-4 md:p-4">
                 <div className="flex items-center justify-end rounded-none bg-background p-3 md:rounded-lg">
-                    <div className="flex items-center gap-4">
-                        <NotificationDropdown notifications={NOTIFICATIONS} />
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            className="rounded-full"
+                            onClick={runTour}
+                            title="Show tutorial"
+                        >
+                            <HelpCircle className="size-4.5" />
+                        </Button>
 
-                        <StudentDrawer />
+                        <div id="tour-notifications">
+                            <NotificationDropdown
+                                notifications={NOTIFICATIONS}
+                            />
+                        </div>
+
+                        <div id="tour-student-drawer">
+                            <StudentDrawer />
+                        </div>
                     </div>
                 </div>
                 <div className="grow overflow-hidden rounded-none bg-background md:rounded-lg">

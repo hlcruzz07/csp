@@ -41,9 +41,10 @@ import { toast } from 'sonner';
 import { LogoutModal } from './LogoutModal';
 import AppearanceTabs from '@/components/appearance-tabs';
 interface StudentDrawerProps {
+    id?: string;
     onSave?: () => void;
 }
-export function StudentDrawer({ onSave }: StudentDrawerProps) {
+export function StudentDrawer({ id, onSave }: StudentDrawerProps) {
     const getInitials = useInitials();
     const { auth } = usePage<any>().props;
     const isStudent = auth.user.role === 'student';
@@ -182,6 +183,7 @@ export function StudentDrawer({ onSave }: StudentDrawerProps) {
             >
                 <DrawerTrigger asChild>
                     <Button
+                        id={id}
                         variant={'outline'}
                         type="button"
                         className="cursor-pointer"
