@@ -69,6 +69,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Message Notification Cooldown
+    |--------------------------------------------------------------------------
+    |
+    | This controls how long a user must wait before receiving another
+    | "New Message" notification for the same conversation. Set this in hours.
+    |
+    */
+
+    'message_notification_cooldown_hours' => env('MESSAGE_NOTIFICATION_COOLDOWN_HOURS', 12),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

@@ -118,12 +118,16 @@ class MessageController extends Controller
 
     protected function notifyIfNoPendingUnread(User $recipient, Conversation $conversation, Message $message): void
     {
-        $hasPendingUnread = $recipient->unreadNotifications()
+        $cooldownHours = max(1, (int) config('app.message_notification_cooldown_hours', 12));
+        $notificationWindowStart = now()->subHours($cooldownHours);
+
+        $hasRecentNotification = $recipient->notifications()
             ->where('type', NotificationType::NEW_MESSAGE->value)
             ->where('data->conversation_id', $conversation->id)
+            ->where('created_at', '>=', $notificationWindowStart)
             ->exists();
 
-        if ($hasPendingUnread) {
+        if ($hasRecentNotification) {
             return;
         }
 

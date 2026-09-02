@@ -110,6 +110,8 @@ jobs:
           GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI }}
 
           GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+
+          MESSAGE_NOTIFICATION_COOLDOWN_HOURS=${{ secrets.MESSAGE_NOTIFICATION_COOLDOWN_HOURS }}
           EOF
 
       - name: 📦 Install & build frontend assets
