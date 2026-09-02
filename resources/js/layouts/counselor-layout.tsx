@@ -158,7 +158,7 @@ export default function CounselorLayout({
                             <button
                                 id="tour-menu-toggle"
                                 type="button"
-                                className="rounded-lg border p-2 transition hover:bg-muted"
+                                className="rounded-lg p-2 transition hover:bg-muted"
                             >
                                 <MenuIcon className="size-5" />
                             </button>
