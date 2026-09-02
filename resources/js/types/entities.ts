@@ -32,10 +32,18 @@ export interface Message {
 }
 
 export interface Notification {
-    id: number;
-    title: string;
-    description: string;
-    time: string;
+    id: string;
+    type: string;
+    notifiable_type?: string;
+    notifiable_id?: number | string;
+    data: {
+        type: string;
+        title: string;
+        description: string;
+    };
+    read_at: string | null;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Attachments {

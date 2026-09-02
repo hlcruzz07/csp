@@ -521,10 +521,7 @@ export default function CounselorConversationShow() {
                             )}
                         </h1>
                         <small className="capitalized text-xs text-muted-foreground md:text-sm">
-                            {student?.assigned_college?.name}{' '}
-                            {student?.assigned_college?.code
-                                ? `(${student.assigned_college.code})`
-                                : ''}
+                            {student?.assigned_college?.name}
                         </small>
                     </div>
                 </div>

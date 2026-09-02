@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NotificationType;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompleteStudentRequest;
@@ -9,6 +10,7 @@ use App\Http\Requests\UpdateStudentProfileRequest;
 use App\Jobs\FindStudentCounselorJob;
 use App\Models\Category;
 use App\Models\College;
+use App\Notifications\SendNotification;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,11 +81,18 @@ class StudentController extends Controller
     {
 
         try {
-            $this->studentRepo->updateProfile(
+            $student = $this->studentRepo->updateProfile(
                 $request->all(),
                 auth()->user()->id
             );
 
+
+            $counselor = $student->studentConversation->counselor;
+
+            $counselor->notify(new SendNotification(
+                NotificationType::CHAT_UPDATED,
+                ['name' => $student->name],
+            ));
 
             Inertia::flash('toast', [
                 'type' => 'success',

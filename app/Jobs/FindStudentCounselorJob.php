@@ -2,10 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Enums\NotificationType;
 use App\Enums\UserRole;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Models\UserCollege;
+use App\Notifications\SendNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,7 +23,8 @@ class FindStudentCounselorJob implements ShouldQueue
 
     public function __construct(
         protected int $studentId
-    ) {}
+    ) {
+    }
 
     public function handle(): void
     {
@@ -51,7 +54,7 @@ class FindStudentCounselorJob implements ShouldQueue
             $student->id
         )->first();
 
-        if (! $studentCollege) {
+        if (!$studentCollege) {
             Log::info('FindStudentCounselorJob: student has no college', ['student_id' => $student->id]);
             return;
         }
@@ -86,6 +89,11 @@ class FindStudentCounselorJob implements ShouldQueue
                 'student_id' => $student->id,
                 'counselor_id' => $counselor->id,
             ]);
+
+            $counselor->notify(new SendNotification(
+                NotificationType::NEW_CHAT_ASSIGNED,
+                ['name' => $student->name],
+            ));
 
             Log::info('FindStudentCounselorJob: conversation created', ['conversation_id' => $conversation->id, 'student_id' => $student->id, 'counselor_id' => $counselor->id]);
         } catch (\Throwable $e) {

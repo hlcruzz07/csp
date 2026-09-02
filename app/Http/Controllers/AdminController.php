@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NotificationType;
 use App\Enums\UserRole;
 use App\Enums\MessageStatus;
 use App\Http\Controllers\Controller;
@@ -11,6 +12,7 @@ use App\Models\College;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\SendNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -105,6 +107,11 @@ class AdminController extends Controller
             'college_id' => (int) $data['assigned_college_id']
         ]);
 
+        $counselor->notify(new SendNotification(
+            NotificationType::WELCOME,
+            ['name' => $counselor->name],
+        ));
+
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => 'Counselor Added Successfully',
@@ -131,6 +138,11 @@ class AdminController extends Controller
         $counselor->userCollege()->update([
             'college_id' => (int) $data['assigned_college_id']
         ]);
+
+        $counselor->notify(new SendNotification(
+            NotificationType::ACCOUNT_UPDATED,
+            ['name' => $counselor->name],
+        ));
 
         Inertia::flash('toast', [
             'type' => 'success',

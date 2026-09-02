@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\CounselorApiController;
+use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
@@ -16,4 +17,7 @@ Route::prefix('api/conversations')->middleware(['auth', 'verified', 'role:studen
 
 Route::prefix('api')->middleware(['auth', 'verified', 'role:admin|counselor'])->group(function () {
     Route::get('/counselors', [CounselorApiController::class, 'paginate'])->name('paginateCounselors');
+    Route::get('/notifications', [NotificationApiController::class, 'paginate'])->name('paginateNotifications');
+    Route::patch('/notification/{id}/read', [NotificationApiController::class, 'read'])->name('readNotification');
+    Route::patch('/notifications/{user_id}/mark-all-read', [NotificationApiController::class, 'markAllRead'])->name('markAllNotificationsRead');
 });

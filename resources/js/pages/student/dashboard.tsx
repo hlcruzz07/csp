@@ -474,7 +474,7 @@ export default function Dashboard() {
                     popover: {
                         title: 'Send message',
                         description:
-                            "Press this when your reply is ready to send it to your counselor.",
+                            'Press this when your reply is ready to send it to your counselor.',
                         side: 'top' as const,
                     },
                 },

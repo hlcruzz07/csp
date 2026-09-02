@@ -43,7 +43,8 @@ class HandleInertiaRequests extends Middleware
                     ? $request->user()->load([
                         'assignedCollege',
                         'studentConversation.counselor',
-                        'counselorConversations.student'
+                        'counselorConversations.student',
+
                     ])
                     : null,
             ],

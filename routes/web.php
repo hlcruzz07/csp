@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CounselorController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StudentController;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -39,23 +40,6 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(fu
     Route::patch('/counselor/{id}/update', [AdminController::class, 'updateCounselor'])->name('updateCounselor');
     Route::post('/counselor/create', [AdminController::class, 'createCounselor'])->name('createCounselor');
 });
-Route::get('/setup-admin', function (Request $request) {
-    $admin = User::create([
-        'uuid' => (string) Str::uuid(),
-        'name' => 'Harold Cruz',
-        'pseudonym' => 'Donny Pangilinan',
-        'email' => 'harold.cruz0407@gmail.com',
-        'password' => Hash::make('password123'),
-        'is_anonymous' => false,
-        'role' => UserRole::ADMIN,
-    ]);
-
-    Auth::login($admin);
-
-    $request->session()->regenerate();
-
-    return redirect('/dashboard');
-});
 Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->group(function () {
 
     Route::get('/', fn() => redirect()->route('counselorDashboard'));
@@ -78,17 +62,9 @@ Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counsel
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
 
-Route::get('/php-limits-check', function () {
-    return [
-        'upload_max_filesize' => ini_get('upload_max_filesize'),
-        'post_max_size' => ini_get('post_max_size'),
-        'max_file_uploads' => ini_get('max_file_uploads'),
-        'memory_limit' => ini_get('memory_limit'),
-    ];
-});
-
 Route::middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
     Route::get('/conversation/{uuid}', [ConversationController::class, 'index'])->name('conversation');
+
 });
 
 Route::get('/dashboard', function () {

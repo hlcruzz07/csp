@@ -4,15 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Ai\Agents\CounselingAssistant;
 use App\Ai\Agents\CounselorResponse;
+use App\Enums\NotificationType;
+use App\Enums\UserRole;
 use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateMessageRequest;
+use App\Models\User;
+use App\Notifications\SendNotification;
 use App\Repositories\MessageRepo;
 use App\Services\AttachmentStorageService;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 
@@ -86,11 +91,47 @@ class MessageController extends Controller
             $message->load('sender', 'attachments', 'conversation');
 
             broadcast(new MessageSent($message));
+
+            $this->notifyRecipient($message, $conversation);
+
             return redirect()->back();
         } catch (\Throwable $th) {
             Log::error('Error creating message: ' . $th->getMessage(), ['exception' => $th]);
             return redirect()->back()->withErrors(['error' => 'Something went wrong while sending the message. Please try again.' . $th->getMessage()]);
         }
+    }
+
+    protected function notifyRecipient(Message $message, Conversation $conversation): void
+    {
+        $recipientId = $message->sender_id === $conversation->counselor_id
+            ? $conversation->student_id
+            : $conversation->counselor_id;
+
+        $recipient = User::find($recipientId);
+
+        if (!$recipient || $recipient->role !== UserRole::COUNSELOR || $recipient->id === $message->sender_id) {
+            return;
+        }
+
+        $this->notifyIfNoPendingUnread($recipient, $conversation, $message);
+    }
+
+    protected function notifyIfNoPendingUnread(User $recipient, Conversation $conversation, Message $message): void
+    {
+        $hasPendingUnread = $recipient->unreadNotifications()
+            ->where('type', NotificationType::NEW_MESSAGE->value)
+            ->where('data->conversation_id', $conversation->id)
+            ->exists();
+
+        if ($hasPendingUnread) {
+            return;
+        }
+
+        $recipient->notify(new SendNotification(
+            NotificationType::NEW_MESSAGE,
+            ['name' => $message->sender->name],
+            ['conversation_id' => $conversation->id], // extra data, not templated text
+        ));
     }
 
     public function counselorResponse(Request $request)

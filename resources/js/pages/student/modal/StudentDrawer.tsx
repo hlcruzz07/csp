@@ -184,7 +184,7 @@ export function StudentDrawer({ id, onSave }: StudentDrawerProps) {
                 <DrawerTrigger asChild>
                     <Button
                         id={id}
-                        variant={'outline'}
+                        variant={'ghost'}
                         type="button"
                         className="cursor-pointer"
                         size={'sm'}

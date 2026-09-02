@@ -3,11 +3,14 @@ import { NotificationDropdown } from '@/components/counselor/NotificationDropdow
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import apiService from '@/lib/api-service';
 import { startTour } from '@/lib/tour';
 import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
-import { Conversation, Notification } from '@/types/entities';
+import { paginateNotifications } from '@/routes';
+import type { Conversation, Notification } from '@/types/entities';
 import { usePage } from '@inertiajs/react';
-import { HelpCircle, MenuIcon } from 'lucide-react';
+import { DatabaseIcon, HelpCircle, MenuIcon } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type PageProps = {
     conversations: Conversation[];
@@ -18,40 +21,68 @@ export default function CounselorLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const NOTIFICATIONS: Notification[] = [
-        {
-            id: 1,
-            title: 'New chat assigned',
-            description: 'Maria Santos has been assigned to your caseload.',
-            time: '2m ago',
-        },
-        {
-            id: 2,
-            title: 'Chat updated',
-            description: 'John Carlo Dela Cruz sent a new message.',
-            time: '15m ago',
-        },
-        {
-            id: 3,
-            title: 'Follow-up reminder',
-            description:
-                'You have a scheduled follow-up with Angelica Reyes today.',
-            time: '1h ago',
-        },
-        {
-            id: 4,
-            title: 'Session completed',
-            description:
-                'Your session with Mark Anthony Villanueva was marked as complete.',
-            time: '5h ago',
-        },
-        {
-            id: 5,
-            title: 'New student request',
-            description: 'A new student has requested a counseling session.',
-            time: 'Yesterday',
-        },
-    ];
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    // Guards against overlapping/duplicate requests
+    const isFetchingRef = useRef(false);
+
+    const fetchNotifications = useCallback(async (page: number) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+
+        page === 1 ? setIsLoading(true) : setIsLoadingMore(true);
+
+        try {
+            const { data } = await apiService.get(paginateNotifications().url, {
+                params: { page, perPage: 10 },
+            });
+
+            setNotifications((prev) =>
+                page === 1 ? data.data : [...prev, ...data.data],
+            );
+            setCurrentPage(data.current_page);
+            setLastPage(data.last_page);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            isFetchingRef.current = false;
+            setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    }, []);
+
+    const loadMoreNotifications = useCallback(() => {
+        if (isFetchingRef.current || currentPage >= lastPage) return;
+        fetchNotifications(currentPage + 1);
+    }, [currentPage, lastPage, fetchNotifications]);
+
+    const handleNotificationRead = useCallback((id: number | string) => {
+        setNotifications((prev) =>
+            prev.map((n) =>
+                n.id === id
+                    ? { ...n, read_at: new Date().toISOString(), is_read: true }
+                    : n,
+            ),
+        );
+    }, []);
+
+    const handleAllRead = useCallback(() => {
+        setNotifications((prev) =>
+            prev.map((n) => ({
+                ...n,
+                read_at: new Date().toISOString(),
+                is_read: true,
+            })),
+        );
+    }, []);
+
+    useEffect(() => {
+        fetchNotifications(1);
+    }, [fetchNotifications]);
 
     const isMobile = useIsMobile();
     const { conversations } = usePage<PageProps>().props;
@@ -63,7 +94,14 @@ export default function CounselorLayout({
     );
 
     const runTour = () => {
-        const steps = isMobile
+        const steps: Array<{
+            element: string;
+            popover: {
+                title: string;
+                description: string;
+                side: 'bottom' | 'right';
+            };
+        }> = isMobile
             ? [
                   {
                       element: '#tour-menu-toggle',
@@ -71,7 +109,7 @@ export default function CounselorLayout({
                           title: 'Your conversations',
                           description:
                               'Tap here anytime to open your list of student conversations.',
-                          side: 'bottom' as const,
+                          side: 'bottom',
                       },
                   },
               ]
@@ -82,7 +120,7 @@ export default function CounselorLayout({
                           title: 'Your conversations',
                           description:
                               'All conversations assigned to you show up here, sorted by recent activity.',
-                          side: 'right' as const,
+                          side: 'right',
                       },
                   },
               ];
@@ -149,7 +187,13 @@ export default function CounselorLayout({
 
                         <div id="tour-notifications">
                             <NotificationDropdown
-                                notifications={NOTIFICATIONS}
+                                notifications={notifications}
+                                isLoading={isLoading}
+                                isLoadingMore={isLoadingMore}
+                                hasMore={currentPage < lastPage}
+                                onLoadMore={loadMoreNotifications}
+                                onNotificationRead={handleNotificationRead}
+                                onAllRead={handleAllRead}
                             />
                         </div>
 

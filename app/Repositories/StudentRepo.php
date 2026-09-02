@@ -90,6 +90,8 @@ class StudentRepo
             $payload['password'] = Hash::make($data['new_password']);
         }
 
-        return $student->update($payload);
+        $student->update($payload);
+
+        return $student;
     }
 }
