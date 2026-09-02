@@ -1,12 +1,13 @@
 import { Head, usePage } from '@inertiajs/react';
 import {
     Building2,
-    ShieldCheck,
+    CalendarPlus,
+    GraduationCap,
     UserPen,
     UserPlus2,
     UsersRound,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CounselorAddDialog from '@/components/counselor/CounselorAddDialog';
 import CounselorEditDialog from '@/components/counselor/CounselorEditDialog';
 import DataTable from '@/components/DataTable';
@@ -15,19 +16,21 @@ import type {
     PaginatedData,
     SortState,
 } from '@/components/DataTable';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import apiService from '@/lib/api-service';
 import { adminDashboard } from '@/routes';
 import type { College, Counselor } from '@/types/entities';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolveAvatarUrl } from '@/lib/utils';
-
 type CounselorResponse = PaginatedData<Counselor> & {
     stats: {
         total: number;
-        verified: number;
-        assignedCollege: number;
+        totalColleges: number;
+        avgStudentsPerCounselor: number;
+        newThisMonth: number;
     };
     colleges: { label: string; value: string }[];
 };
@@ -35,31 +38,42 @@ type CounselorResponse = PaginatedData<Counselor> & {
 function StatWidget({
     label,
     value,
+    subLabel,
     icon: Icon,
 }: {
     label: string;
-    value: number;
+    value: string | number;
+    subLabel?: string;
     icon: React.ComponentType<{ className?: string }>;
 }) {
     return (
         <Card className="border-sidebar-border/70 dark:border-sidebar-border">
             <CardContent className="flex items-center justify-between px-6">
-                <div>
+                <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="mt-1 text-3xl font-semibold tracking-tight">
-                        {value.toLocaleString()}
+                    <p className="mt-1 truncate text-3xl font-semibold tracking-tight">
+                        {typeof value === 'number'
+                            ? value.toLocaleString()
+                            : value}
                     </p>
+                    {subLabel && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {subLabel}
+                        </p>
+                    )}
                 </div>
-                <div className="flex size-11 items-center justify-center rounded-full bg-primary/10">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
                     <Icon className="size-5 text-primary" />
                 </div>
             </CardContent>
         </Card>
     );
 }
+
 type PageProps = {
     colleges: College[];
 };
+
 function getInitials(name: string): string {
     return name
         .trim()
@@ -68,6 +82,7 @@ function getInitials(name: string): string {
         .map((part) => part[0]?.toUpperCase() ?? '')
         .join('');
 }
+
 export default function Index() {
     const [search, setSearch] = useState('');
     const [college, setCollege] = useState<string | null>(null);
@@ -115,6 +130,19 @@ export default function Index() {
 
         return () => controller.abort();
     }, [college, page, perPage, refreshKey, search, sort]);
+
+    const sortedColleges = useMemo(
+        () =>
+            [...colleges].sort(
+                (a, b) => (b.counselor_count ?? 0) - (a.counselor_count ?? 0),
+            ),
+        [colleges],
+    );
+
+    const maxCollegeCount = useMemo(
+        () => Math.max(...colleges.map((c) => c.counselor_count ?? 0), 1),
+        [colleges],
+    );
 
     const columns: DataTableColumn<Counselor>[] = [
         {
@@ -218,7 +246,7 @@ export default function Index() {
                 onSaved={() => setRefreshKey((k) => k + 1)}
             />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-2">
+                <div className="grid auto-rows-min gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <StatWidget
                         label="Total counselors"
                         value={response?.stats.total ?? 0}
@@ -226,9 +254,21 @@ export default function Index() {
                     />
 
                     <StatWidget
-                        label="Assigned to a college"
-                        value={response?.stats.assignedCollege ?? 0}
+                        label="Total colleges"
+                        value={response?.stats.totalColleges ?? colleges.length}
                         icon={Building2}
+                    />
+
+                    <StatWidget
+                        label="Avg. students / counselor"
+                        value={response?.stats.avgStudentsPerCounselor ?? 0}
+                        icon={GraduationCap}
+                    />
+
+                    <StatWidget
+                        label="New this month"
+                        value={response?.stats.newThisMonth ?? 0}
+                        icon={CalendarPlus}
                     />
                 </div>
 
@@ -237,6 +277,50 @@ export default function Index() {
                         {error}
                     </p>
                 )}
+
+                <Card>
+                    <CardHeader>
+                        <h2 className="text-lg font-semibold">
+                            Colleges Overview
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Counselor distribution across colleges
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {sortedColleges.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No colleges found.
+                            </p>
+                        ) : (
+                            sortedColleges.map((c) => {
+                                const count = c.counselor_count ?? 0;
+                                const percentage =
+                                    (count / maxCollegeCount) * 100;
+
+                                return (
+                                    <div key={c.id} className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium">
+                                                {c.name}
+                                            </span>
+                                            <Badge variant="secondary">
+                                                {count}{' '}
+                                                {count === 1
+                                                    ? 'counselor'
+                                                    : 'counselors'}
+                                            </Badge>
+                                        </div>
+                                        <Progress
+                                            value={percentage}
+                                            className="h-2"
+                                        />
+                                    </div>
+                                );
+                            })
+                        )}
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>

@@ -72,8 +72,18 @@ class AdminController extends Controller
 
     public function counselors()
     {
+        $colleges = College::query()
+            ->withCount([
+                'userColleges as counselor_count' => function ($query) {
+                    $query->whereHas('user', function ($q) {
+                        $q->where('role', UserRole::COUNSELOR->value);
+                    });
+                }
+            ])
+            ->get();
+
         return Inertia::render('admin/counselors/index', [
-            'colleges' => College::all()
+            'colleges' => $colleges,
         ]);
     }
 

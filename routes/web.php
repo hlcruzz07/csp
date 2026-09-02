@@ -62,11 +62,6 @@ Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counsel
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
 
-Route::middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
-    Route::get('/conversation/{uuid}', [ConversationController::class, 'index'])->name('conversation');
-
-});
-
 Route::get('/dashboard', function () {
 
 

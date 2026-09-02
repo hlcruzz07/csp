@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Enums\UserRole;
+use App\Models\College;
+use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,14 +66,26 @@ class CounselorApiController extends Controller
             'assigned_college' => $counselor->assignedCollege,
             'student_count' => (int) $counselor->student_count,
         ]);
+
         $statsQuery = User::where('role', UserRole::COUNSELOR);
+        $totalCounselors = (clone $statsQuery)->count();
+        $totalColleges = College::count();
+        $totalStudentsAssigned = Conversation::whereNotNull('counselor_id')->count();
+        $avgStudentsPerCounselor = $totalCounselors > 0
+            ? round($totalStudentsAssigned / $totalCounselors, 1)
+            : 0;
+        $newThisMonth = (clone $statsQuery)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
 
         return response()->json([
             ...$counselors->toArray(),
             'stats' => [
-                'total' => (clone $statsQuery)->count(),
-                'verified' => (clone $statsQuery)->whereNotNull('email_verified_at')->count(),
-                'assignedCollege' => (clone $statsQuery)->whereHas('assignedCollege')->count(),
+                'total' => $totalCounselors,
+                'totalColleges' => $totalColleges,
+                'avgStudentsPerCounselor' => $avgStudentsPerCounselor,
+                'newThisMonth' => $newThisMonth,
             ],
             'colleges' => User::query()
                 ->where('role', UserRole::COUNSELOR)
@@ -87,6 +101,5 @@ class CounselorApiController extends Controller
                 ])
                 ->values(),
         ]);
-
     }
 }
