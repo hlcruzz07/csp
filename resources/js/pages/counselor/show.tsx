@@ -446,6 +446,15 @@ export default function CounselorConversationShow() {
         startTour({
             steps: [
                 {
+                    element: '#tour-assigned-student',
+                    popover: {
+                        title: 'Assigned student',
+                        description:
+                            'This is the student currently assigned to this conversation. Keep this card in view while you respond to their messages.',
+                        side: 'top' as const,
+                    },
+                },
+                {
                     element: '#tour-composer-options',
                     popover: {
                         title: 'Add attachments & AI help',
@@ -490,7 +499,10 @@ export default function CounselorConversationShow() {
                 <SendingMessageDialog open={processing} progress={progress} />
             )}
             <div className="flex items-center justify-between p-3">
-                <div className="flex cursor-pointer items-center gap-2">
+                <div
+                    id="tour-assigned-student"
+                    className="flex cursor-pointer items-center gap-2"
+                >
                     <Avatar className="size-10 overflow-hidden rounded-full md:size-12">
                         <AvatarImage
                             src={
