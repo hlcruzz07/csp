@@ -122,7 +122,6 @@ jobs:
       - name: 🚀 Deploy to CloudPanel via SFTP / rsync
         env:
           SSHPASS: ${{ secrets.FTP_PASSWORD }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
           echo "Installing sshpass and rsync..."
           sudo apt-get update -qq
@@ -130,22 +129,21 @@ jobs:
 
           echo "Starting file synchronization to CloudPanel server..."
           sshpass -e rsync -rltz --delete \
-            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -p ${SSH_PORT}" \
+            -e "ssh -o StrictHostKeyChecking=no -p 22" \
             --exclude=".git*" \
             --exclude=".github*" \
             --exclude="node_modules*" \
-            --exclude="storage*" \
             --exclude="tests*" \
             --exclude="README.md" \
             --exclude="scratch*" \
             ./ ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }}:htdocs/csp.scythelabs.online/
 
           echo "Running post-deployment Laravel commands on CloudPanel VPS..."
-          sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -p "${SSH_PORT}" ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }} << 'EOF'
+          sshpass -e ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }} << 'EOF'
             cd htdocs/csp.scythelabs.online/
             chmod -R 775 storage bootstrap/cache
             php artisan storage:link || true
-            php artisan migrate:fresh
+            php artisan migrate:fresh --force
             php artisan db:seed
             php artisan optimize:clear
             php artisan config:clear
