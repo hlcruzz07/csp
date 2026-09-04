@@ -33,7 +33,7 @@ jobs:
         run: |
           cat <<EOF > .env
           APP_NAME=${{ secrets.APP_NAME }}
-          APP_ENV=${{ secrets.APP_ENV }}
+          APP_ENV=local
           APP_KEY=${{ secrets.APP_KEY }}
           APP_DEBUG=${{ secrets.APP_DEBUG }}
           APP_URL=${{ secrets.APP_URL }}
@@ -133,6 +133,7 @@ jobs:
             --exclude=".git*" \
             --exclude=".github*" \
             --exclude="node_modules*" \
+            --exclude="storage*" \
             --exclude="tests*" \
             --exclude="README.md" \
             --exclude="scratch*" \
@@ -143,12 +144,12 @@ jobs:
             cd htdocs/csp.scythelabs.online/
             chmod -R 775 storage bootstrap/cache
             php artisan storage:link || true
-            php artisan migrate --force
-            # php artisan db:seed
+            php artisan migrate:fresh
+            php artisan db:seed
             php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            php artisan config:clear
+            php artisan route:clear
+            php artisan view:clear
             php artisan queue:restart || true
 
             # Restart Reverb WebSocket server in background
