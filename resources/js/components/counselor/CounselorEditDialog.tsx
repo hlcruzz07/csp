@@ -234,6 +234,7 @@ export default function CounselorEditDialog({
                             onValueChange={(value) =>
                                 setData('assigned_college_id', value)
                             }
+                            disabled
                         >
                             <SelectTrigger
                                 id="assigned_college_id"
