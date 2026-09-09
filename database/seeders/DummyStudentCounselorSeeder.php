@@ -46,7 +46,7 @@ class DummyStudentCounselorSeeder extends Seeder
                     'name' => $userData['name'],
                     'pseudonym' => Str::slug($userData['name']),
                     'password' => Hash::make('password123'),
-                    'is_anonymous' => $userData['role'] === UserRole::COUNSELOR,
+                    'is_anonymous' => false,
                     'role' => $userData['role'],
                 ],
             );

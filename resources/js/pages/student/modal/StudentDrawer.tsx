@@ -194,7 +194,7 @@ export function StudentDrawer({ id, onSave }: StudentDrawerProps) {
                 </DrawerTrigger>
                 <DrawerContent>
                     <DrawerHeader>
-                        <DrawerTitle>Student Profile</DrawerTitle>
+                        <DrawerTitle>Profile</DrawerTitle>
                         <DrawerDescription className="text-xs md:text-sm">
                             Manage your profile and view information related to
                             your counseling services.
