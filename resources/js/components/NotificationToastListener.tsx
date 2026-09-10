@@ -81,7 +81,7 @@ export function NotificationToastListener() {
 
             toast.custom(
                 (toastId) => (
-                    <div className="flex w-[min(380px,calc(100vw-2rem))] items-start gap-3 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg">
+                    <div className="hidden w-[min(380px,calc(100vw-2rem))] items-start gap-3 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg sm:flex">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                             <Bell className="size-4" />
                         </div>

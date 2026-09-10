@@ -509,6 +509,7 @@ export default function Dashboard() {
                         <AvatarImage
                             src={resolveAvatarUrl(counselor?.avatar)}
                             alt={normalizeName(counselor?.name || '')}
+                            className="object-cover"
                         />
                         <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black md:text-sm dark:bg-neutral-700 dark:text-white">
                             {getInitials(
