@@ -37,6 +37,8 @@ import {
     AttachmentTitle,
 } from '@/components/ui/attachment';
 import {
+    Bell,
+    BellOff,
     FileIcon,
     FilePlus,
     FilePlus2Icon,
@@ -73,6 +75,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import SendingMessageDialog from '../../components/SendingMessage';
+import { usePushSubscription } from '@/hooks/use-push-subscription';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 type Message = {
     id: number;
     conversation_id: number;
@@ -489,6 +498,12 @@ export default function Dashboard() {
         });
     };
 
+    const {
+        subscribe,
+        isEnabled,
+        isLoading: isPushLoading,
+    } = usePushSubscription();
+
     if (!isCompleted) return <CompleteStudentModal />;
     if (!hasConvo) return <MatchingCounselorModal />;
 
@@ -542,6 +557,46 @@ export default function Dashboard() {
                     >
                         <HelpCircle className="size-4.5" />
                     </Button>
+
+                    <div className="flex items-center gap-1.5 rounded-full border px-2 py-1">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-1.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                >
+                                    <Bell className="size-3.5 text-muted-foreground" />
+                                    <span className="hidden text-xs text-muted-foreground sm:inline">
+                                        Notify me
+                                    </span>
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                side="bottom"
+                                align="start"
+                                className="w-64 text-xs"
+                            >
+                                Enables browser notifications when you are away
+                                from the application. It does not control the
+                                notification list inside the app.
+                            </PopoverContent>
+                        </Popover>
+
+                        <Switch
+                            checked={isEnabled}
+                            disabled={isEnabled || isPushLoading}
+                            onCheckedChange={(checked) => {
+                                if (checked) void subscribe();
+                            }}
+                            icon={{
+                                on: <Bell className="text-primary" />,
+                                off: (
+                                    <BellOff className="text-muted-foreground" />
+                                ),
+                            }}
+                            aria-label="Enable browser notifications"
+                        />
+                    </div>
 
                     <StudentDrawer
                         id="tour-profile-drawer"

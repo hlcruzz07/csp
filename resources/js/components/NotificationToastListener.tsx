@@ -23,34 +23,51 @@ type BroadcastNotification = {
     description?: string;
 };
 
-async function showHiddenTabNotification(
+async function showNativeBrowserNotification(
     notification: BroadcastNotification,
     title: string,
     description: string,
 ) {
-    if (
-        document.visibilityState !== 'hidden' ||
-        !('Notification' in window) ||
-        Notification.permission !== 'granted' ||
-        !('serviceWorker' in navigator)
-    ) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
         return;
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
+    const targetUrl = notification.data?.url ?? '/dashboard';
+    const tag = notification.id ?? `notification-${Date.now()}`;
 
-    // Web Push already shows the native notification when subscribed.
-    if (subscription) return;
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification(title, {
+                body: description,
+                icon: '/logo.webp',
+                tag: tag,
+                data: {
+                    url: targetUrl,
+                },
+            });
+            return;
+        } catch (error) {
+            console.error('Error showing service worker notification:', error);
+        }
+    }
 
-    await registration.showNotification(title, {
-        body: description,
-        icon: '/logo.webp',
-        tag: notification.id ?? `notification-${Date.now()}`,
-        data: {
-            url: notification.data?.url ?? '/dashboard',
-        },
-    });
+    try {
+        const nativeNotif = new Notification(title, {
+            body: description,
+            icon: '/logo.webp',
+            tag: tag,
+            data: {
+                url: targetUrl,
+            },
+        });
+        nativeNotif.onclick = () => {
+            window.focus();
+            window.location.href = targetUrl;
+        };
+    } catch (error) {
+        console.error('Error showing native browser notification:', error);
+    }
 }
 
 export function NotificationToastListener() {
@@ -77,7 +94,7 @@ export function NotificationToastListener() {
                 notification.description ??
                 'You have a new notification.';
 
-            void showHiddenTabNotification(notification, title, description);
+            void showNativeBrowserNotification(notification, title, description);
 
             toast.custom(
                 (toastId) => (

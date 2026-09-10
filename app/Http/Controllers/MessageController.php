@@ -113,7 +113,7 @@ class MessageController extends Controller
 
         $recipient = User::find($recipientId);
 
-        if (!$recipient || $recipient->role !== UserRole::COUNSELOR || $recipient->id === $message->sender_id) {
+        if (!$recipient || $recipient->id === $message->sender_id) {
             return;
         }
 
