@@ -2,6 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AdminSidebar } from '@/components/admin-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { NotificationToastListener } from '@/components/NotificationToastListener';
 import type { AppLayoutProps } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { UserProps } from '@/types/entities';
@@ -21,6 +22,7 @@ export default function AppSidebarLayout({
 
     return (
         <AppShell variant="sidebar">
+            <NotificationToastListener />
             {auth.user.role === 'admin' && <AdminSidebar />}
             <AppContent variant="sidebar" className="overflow-x-hidden">
                 {auth.user.role === 'admin' && (

@@ -88,6 +88,10 @@ class MessageController extends Controller
 
             $message = $this->messageRepo->createMessage($data);
 
+            if ((int) auth()->id() === (int) $conversation->counselor_id) {
+                $this->messageRepo->markStudentMessagesAsResponded($conversation);
+            }
+
             $message->load('sender', 'attachments', 'conversation');
 
             broadcast(new MessageSent($message));

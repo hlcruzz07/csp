@@ -1,8 +1,10 @@
 import { ChatSidebar } from '@/components/counselor/ChatSidebar';
 import { NotificationDropdown } from '@/components/counselor/NotificationDropdown';
+import { NotificationToastListener } from '@/components/NotificationToastListener';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePushSubscription } from '@/hooks/use-push-subscription';
 import apiService from '@/lib/api-service';
 import { startTour } from '@/lib/tour';
 import { StudentDrawer } from '@/pages/student/modal/StudentDrawer';
@@ -151,6 +153,7 @@ export default function CounselorLayout({
 
     return (
         <div className="flex h-dvh overflow-hidden">
+            <NotificationToastListener />
             {isMobile ? (
                 <Sheet>
                     <div className="fixed top-4 left-3 z-50">

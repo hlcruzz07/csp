@@ -1,4 +1,15 @@
-type Filter = 'All' | 'Unread';
+import { EllipsisVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+export type Filter = 'All' | 'Unread' | 'Responded';
 
 interface FilterTabsProps {
     selected: Filter;
@@ -7,20 +18,31 @@ interface FilterTabsProps {
 
 export function FilterTabs({ selected, onChange }: FilterTabsProps) {
     return (
-        <div className="flex items-center gap-2">
-            {(['All', 'Unread'] as Filter[]).map((filter) => (
-                <button
-                    key={filter}
-                    onClick={() => onChange(filter)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        selected === filter
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <EllipsisVertical />
+                </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup
+                    value={selected}
+                    onValueChange={(value) => onChange(value as Filter)}
                 >
-                    {filter}
-                </button>
-            ))}
-        </div>
+                    <DropdownMenuRadioItem value="All">
+                        All
+                    </DropdownMenuRadioItem>
+
+                    <DropdownMenuRadioItem value="Unread">
+                        Unread
+                    </DropdownMenuRadioItem>
+
+                    <DropdownMenuRadioItem value="Responded">
+                        Responded
+                    </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

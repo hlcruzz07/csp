@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { NotificationToastListener } from '@/components/NotificationToastListener';
 import { Input } from '@/components/ui/input';
 import { useInitials } from '@/hooks/use-initials';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -126,6 +127,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">
+            <NotificationToastListener />
             {/* Header */}
             <div className="flex items-center justify-between p-3">
                 <div className="flex cursor-pointer items-center gap-2">

@@ -1,18 +1,11 @@
 import Heading from '@/components/heading';
 import { Input } from '@/components/ui/input';
-import { SearchIcon } from 'lucide-react';
+import { CheckCheckIcon, EyeIcon, SearchIcon, SendIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ChatListItem } from './ChatListItem';
-import { FilterTabs } from './FilterTabs';
-import {
-    Conversation,
-    Message,
-    StudentConversation,
-    UserProps,
-} from '@/types/entities';
-import { conversation } from '@/routes';
-
-type Filter = 'All' | 'Unread';
+import { Conversation, Message } from '@/types/entities';
+import { Badge } from '../ui/badge';
+import { Filter, FilterTabs } from './FilterTabs';
 
 interface ChatSidebarProps {
     conversations: Conversation[];
@@ -30,8 +23,15 @@ export function ChatSidebar({ conversations }: ChatSidebarProps) {
             .toLowerCase()
             .includes(search.toLowerCase());
 
+        const latestMessageStatus =
+            c.latest_message?.sender_id === c.counselor_id
+                ? 'responded'
+                : c.latest_message?.status;
+
         const matchesFilter =
-            filter === 'All' || (filter === 'Unread' && c.unread_count > 0);
+            filter === 'All' ||
+            (filter === 'Unread' && c.unread_count > 0) ||
+            (filter === 'Responded' && latestMessageStatus === 'responded');
 
         return matchesSearch && matchesFilter;
     });
@@ -46,19 +46,34 @@ export function ChatSidebar({ conversations }: ChatSidebarProps) {
             </div>
 
             <div className="space-y-3 px-3">
-                <div className="relative flex grow items-center">
-                    <Input
-                        type="text"
-                        placeholder="Search chats"
-                        className="ps-7"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        autoFocus={false}
-                    />
-                    <SearchIcon className="absolute left-2" size={15} />
-                </div>
+                <div className="flex items-center">
+                    <div className="relative flex grow items-center">
+                        <Input
+                            type="text"
+                            placeholder="Search chats"
+                            className="ps-7"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            autoFocus={false}
+                        />
+                        <SearchIcon className="absolute left-2" size={15} />
+                    </div>
 
-                <FilterTabs selected={filter} onChange={setFilter} />
+                    <FilterTabs selected={filter} onChange={setFilter} />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-700 text-blue-100">
+                        <SendIcon /> Sent
+                    </Badge>
+
+                    <Badge className="bg-amber-700 text-amber-100">
+                        <EyeIcon /> Seen
+                    </Badge>
+
+                    <Badge className="bg-green-700 text-green-100">
+                        <CheckCheckIcon /> Responded
+                    </Badge>
+                </div>
             </div>
 
             <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">

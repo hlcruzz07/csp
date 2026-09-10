@@ -62,6 +62,15 @@ Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counsel
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
 
+Route::post('/push-subscriptions', function (\Illuminate\Http\Request $request) {
+    $request->user()->updatePushSubscription(
+        $request->endpoint,
+        $request->keys['p256dh'],
+        $request->keys['auth']
+    );
+    return response()->noContent();
+})->middleware('auth');
+
 Route::get('/dashboard', function () {
 
 

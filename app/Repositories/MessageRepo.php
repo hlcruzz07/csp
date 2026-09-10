@@ -40,6 +40,19 @@ class MessageRepo
         return $message;
     }
 
+    public function markStudentMessagesAsResponded(Conversation $conversation): void
+    {
+        $conversation->messages()
+            ->where('sender_id', $conversation->student_id)
+            ->whereIn('status', [
+                MessageStatus::SENT->value,
+                MessageStatus::SEEN->value,
+            ])
+            ->update([
+                'status' => MessageStatus::RESPONDED->value,
+            ]);
+    }
+
     protected function uploadAttachments(Message $message, array $attachments): void
     {
         if (empty($attachments)) {

@@ -20,7 +20,8 @@ class Message extends Model
     public function casts()
     {
         return [
-            'is_structured' => 'boolean'
+            'is_structured' => 'boolean',
+            'content' => 'encrypted'
         ];
     }
 
