@@ -84,15 +84,16 @@
     --accent: #4988c4;
     --accent-foreground: #ffffff;
 
-    /* MUTED - light tint of the pale blue */
-    --muted: #d6f0f8;
-    --muted-foreground: #4a6a8a;
+    /* MUTED - darkened slightly so it reads against both bg and card */
+    --muted: #cdeaf3;
+    --muted-foreground: #3d6284;
 
     --destructive: #ef4444;
 
-    /* BORDER/INPUT - subtle pale blue */
-    --border: #bde8f5;
-    --input: #eaf7fb;
+    /* BORDER/INPUT - darkened + saturated so they're visible on white cards
+       AND on the pale background; input no longer equals background */
+    --border: #8fd0ea;
+    --input: #7dc4e2;
     --ring: #1c4d8d;
 
     /* CHART COLORS */
@@ -109,7 +110,7 @@
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #4988c4;
     --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #bde8f5;
+    --sidebar-border: #a4dbef;
     --sidebar-ring: #1c4d8d;
 }
 .dark {
