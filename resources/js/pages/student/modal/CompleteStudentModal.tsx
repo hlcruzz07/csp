@@ -19,12 +19,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { AsteriskIcon } from 'lucide-react';
+import {
+    AsteriskIcon,
+    DatabaseIcon,
+    EyeIcon,
+    LockIcon,
+    ServerIcon,
+    ShieldCheckIcon,
+} from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { FormEvent, FormEventHandler, useState } from 'react';
-import { ReactFormState } from 'react-dom/client';
+import { FormEvent, useState } from 'react';
 import InputError from '@/components/input-error';
 import { studentComplete } from '@/routes';
 import { handleErrors } from '@/lib/utils';
@@ -38,6 +44,7 @@ import {
 type PageProps = {
     colleges: CollegeProps[];
 };
+
 export default function CompleteStudentModal() {
     const { data, setData, processing, errors, post } = useForm({
         college_id: null as null | number,
@@ -47,6 +54,27 @@ export default function CompleteStudentModal() {
     });
 
     const { colleges } = usePage<PageProps>().props;
+
+    // Privacy policy dialog state.
+    // Two entry points open the same dialog: checking the consent checkbox
+    // (gates actual consent behind reading it) and the standalone "View
+    // Privacy Policy" link (view only, does not touch consent_given).
+    const [policyOpen, setPolicyOpen] = useState(false);
+    const [policyMode, setPolicyMode] = useState<'confirm' | 'view'>('view');
+
+    const handleConsentCheckboxChange = (checked: boolean) => {
+        if (checked) {
+            setPolicyMode('confirm');
+            setPolicyOpen(true);
+        } else {
+            setData('consent_given', false);
+        }
+    };
+
+    const handleAgreeToPolicy = () => {
+        setData('consent_given', true);
+        setPolicyOpen(false);
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -135,7 +163,7 @@ export default function CompleteStudentModal() {
                                                                 <p>
                                                                     {fullText}
                                                                     {isDisabled &&
-                                                                        ' — no counselor currently available for this college'}
+                                                                        ' (no counselor currently available for this college)'}
                                                                 </p>
                                                             </TooltipContent>
                                                         </Tooltip>
@@ -152,9 +180,22 @@ export default function CompleteStudentModal() {
 
                         {/* Privacy Consent */}
                         <div className="space-y-3 rounded-lg border p-4">
-                            <h4 className="font-medium">
-                                Privacy & Data Usage Consent
-                            </h4>
+                            <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-medium">
+                                    Privacy & Data Usage Consent
+                                </h4>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPolicyMode('view');
+                                        setPolicyOpen(true);
+                                    }}
+                                    className="cursor-pointer text-xs font-medium text-primary underline-offset-2 hover:underline"
+                                >
+                                    View Privacy Policy
+                                </button>
+                            </div>
 
                             <p className="text-sm text-muted-foreground">
                                 I have read and understood the Privacy Policy
@@ -168,8 +209,7 @@ export default function CompleteStudentModal() {
                                     id="privacy-consent"
                                     checked={data.consent_given}
                                     onCheckedChange={(checked) =>
-                                        setData(
-                                            'consent_given',
+                                        handleConsentCheckboxChange(
                                             checked === true,
                                         )
                                     }
@@ -267,20 +307,160 @@ export default function CompleteStudentModal() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            // disabled={
-                            //     !data.college_id ||
-                            //     !data.consent_given ||
-                            //     !data.crisis_given
-                            // }
-                        >
+                        <Button type="submit" disabled={processing}>
                             Continue
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
+
+            {/* Privacy Policy dialog. Nested Dialog, controlled independently
+                of the parent "Complete Your Student Profile" dialog. In
+                "confirm" mode (opened by checking the consent checkbox), the
+                checkbox is only actually set to true once the student clicks
+                "I Agree" here; closing or cancelling leaves consent unchecked.
+                In "view" mode (opened via the standalone link), it is read only
+                and never touches consent_given. */}
+            <Dialog open={policyOpen} onOpenChange={setPolicyOpen}>
+                <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ShieldCheckIcon className="size-5 text-primary" />
+                            Privacy Policy
+                        </DialogTitle>
+                        <DialogDescription>
+                            How this counseling support platform collects,
+                            processes, stores, uses, and controls access to your
+                            information.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="no-scrollbar max-h-[55vh] space-y-5 overflow-y-auto pr-1">
+                        <section className="space-y-1.5">
+                            <h5 className="flex items-center gap-1.5 text-sm font-semibold">
+                                <DatabaseIcon className="size-4 text-primary" />
+                                Data Collection
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                                We collect the information you provide when
+                                completing your profile (college department,
+                                identity preference), the messages, category
+                                tags, and attachments you send through the
+                                platform, and basic account details such as your
+                                registered email. If you choose to remain
+                                anonymous, a generated pseudonym is used in
+                                place of your real name for all counselor facing
+                                displays.
+                            </p>
+                        </section>
+
+                        <section className="space-y-1.5">
+                            <h5 className="flex items-center gap-1.5 text-sm font-semibold">
+                                <ServerIcon className="size-4 text-primary" />
+                                Data Processing
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                                Your information is processed strictly to route
+                                your concern to the guidance counselor assigned
+                                to your college, to display your conversation
+                                and case history to that counselor, and to
+                                generate delivery and read status indicators.
+                            </p>
+                        </section>
+
+                        <section className="space-y-1.5">
+                            <h5 className="flex items-center gap-1.5 text-sm font-semibold">
+                                <LockIcon className="size-4 text-primary" />
+                                Data Storage & Security
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                                Messages are stored in encrypted form on the
+                                application's infrastructure. Administrative
+                                safeguards restrict decrypted access to
+                                authorized system processes only, reducing the
+                                risk of data leaks or exposure to parties
+                                outside the platform.
+                            </p>
+                        </section>
+
+                        <section className="space-y-1.5">
+                            <h5 className="flex items-center gap-1.5 text-sm font-semibold">
+                                <ShieldCheckIcon className="size-4 text-primary" />
+                                Data Usage
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                                Your data is used solely to provide student
+                                support services: connecting you with your
+                                assigned counselor, maintaining a continuous
+                                case record, and improving how guidance staff
+                                organize and respond to concerns. It is not used
+                                for advertising, sold to third parties, or
+                                shared outside the university's guidance and
+                                counseling function.
+                            </p>
+                        </section>
+
+                        <section className="space-y-1.5">
+                            <h5 className="flex items-center gap-1.5 text-sm font-semibold">
+                                <EyeIcon className="size-4 text-primary" />
+                                Access Controls
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                                Access follows a strict need to know model.
+                                Students can only see their own case, and
+                                counselors can only see students assigned to
+                                their department. Counselor accounts cannot be
+                                self registered; they are manually created and
+                                verified by administrative staff to prevent
+                                unauthorized access. If you enable anonymity,
+                                your real identity is withheld from the
+                                counselor's view, and only your pseudonym and
+                                full message history are shown.
+                            </p>
+                        </section>
+
+                        <section className="space-y-1.5 rounded-md border bg-muted/40 p-3">
+                            <h5 className="text-sm font-semibold">
+                                Your Rights
+                            </h5>
+                            <p className="text-sm text-muted-foreground">
+                                Consistent with the Data Privacy Act of 2012 (RA
+                                10173), you have the right to be informed about
+                                how your data is processed, to access and
+                                correct your personal information, and to
+                                withdraw consent at any time. Withdrawing
+                                consent may limit your ability to use certain
+                                platform features. This platform is an
+                                asynchronous support tool and is not a
+                                substitute for emergency or crisis intervention
+                                services.
+                            </p>
+                        </section>
+                    </div>
+
+                    <DialogFooter>
+                        {policyMode === 'confirm' ? (
+                            <>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">
+                                        Cancel
+                                    </Button>
+                                </DialogClose>
+                                <Button
+                                    type="button"
+                                    onClick={handleAgreeToPolicy}
+                                >
+                                    I Agree
+                                </Button>
+                            </>
+                        ) : (
+                            <DialogClose asChild>
+                                <Button type="button">Close</Button>
+                            </DialogClose>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }

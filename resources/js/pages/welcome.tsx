@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     BadgeCheck,
+    CheckCheck,
     Clock3,
     Eye,
     EyeOff,
@@ -14,8 +15,10 @@ import {
     Paperclip,
     PenLine,
     Quote,
+    Route,
     ShieldCheck,
     Sparkles,
+    UserCheck,
     Users2,
     Video,
 } from 'lucide-react';
@@ -70,7 +73,7 @@ const DRAFT_TEXT =
 
 /**
  * Sample AI suggestion shown in the hero demo. Tied to the "Academic"
- * category that the demo settles on — swap this out (or make it
+ * category that the demo settles on, swap this out (or make it
  * category-aware) if the demo ever cycles through more than one category.
  */
 const AI_SUGGESTION_TEXT =
@@ -79,7 +82,7 @@ const AI_SUGGESTION_TEXT =
 /**
  * Real counselor record, expected to come from the backend as an Inertia
  * page prop (e.g. `Inertia::render('Welcome', ['counselors' => ...])`).
- * `avatar` is optional — until real staff photos are uploaded, the UI
+ * `avatar` is optional, until real staff photos are uploaded, the UI
  * falls back to a plain placeholder image built from the counselor's
  * initials so nothing here implies a photo that doesn't exist yet.
  */
@@ -96,7 +99,7 @@ function getInitials(name: string) {
 
 /**
  * Default avatar shown when a counselor has no photo on file. Lives at
- * `public/default.webp`, so it's served as-is from the site root — no
+ * `public/default.webp`, so it's served as-is from the site root, no
  * import needed, just drop the file in `public/`.
  */
 const DEFAULT_AVATAR_URL = '/default.webp';
@@ -116,7 +119,7 @@ function resolveAvatarUrl(avatar: string | null | undefined, size = 600) {
     if (!avatar) return DEFAULT_AVATAR_URL;
 
     if (/^https?:\/\//i.test(avatar)) {
-        // Google photo URLs end in something like "=s96-c" — bump the size
+        // Google photo URLs end in something like "=s96-c", bump the size
         if (/lh3\.googleusercontent\.com/i.test(avatar)) {
             return avatar.replace(/=s\d+-c$/i, `=s${size}-c`);
         }
@@ -208,7 +211,7 @@ function ExpressionDemo() {
                 />
             </p>
 
-            {/* Attachment affordance — always visible, mirrors the real composer */}
+            {/* Attachment affordance, always visible, mirrors the real composer */}
             <div className="mt-3 flex items-center gap-3 border-t border-border pt-2.5 text-muted-foreground/60">
                 <ImagePlus className="h-3.5 w-3.5" />
                 <Video className="h-3.5 w-3.5" />
@@ -238,7 +241,7 @@ function ExpressionDemo() {
                 })}
             </div>
 
-            {/* AI suggestion bubble — appears once the entry is categorized */}
+            {/* AI suggestion bubble, appears once the entry is categorized */}
             <div
                 className={`mt-3 flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 p-2.5 transition-all duration-500 ${
                     stage === 'suggesting' || stage === 'sent'
@@ -268,7 +271,7 @@ function ExpressionDemo() {
 }
 
 /**
- * "See who can read this" — expands on the confidentiality claim already
+ * "See who can read this", expands on the confidentiality claim already
  * made in the hero demo and feature grid, rather than introducing a new
  * one. Keep this in sync with however confidentiality actually works in
  * the backend (e.g. whether admins can access entries for support
@@ -426,8 +429,8 @@ function CounselorGrid({ counselors }: { counselors: Counselor[] }) {
 
 /**
  * Example writing-starter prompts, grouped by concern category. These are
- * sample prompts the guided-entry flow can offer — the same kind of thing
- * shown in the hero demo — not quotes attributed to real or fictional
+ * sample prompts the guided-entry flow can offer, the same kind of thing
+ * shown in the hero demo, not quotes attributed to real or fictional
  * students, so there's nothing here to misrepresent.
  */
 const PROMPTS_BY_CATEGORY: {
@@ -568,14 +571,14 @@ function TestimonialGrid() {
 /**
  * FAQ content describes how the product actually behaves per the rest of
  * this page's copy (confidentiality, categorization, threaded messages,
- * AI suggestions, attachments). Update the counselor-reassignment and
- * crisis-routing answers to match your real backend/support process
- * before shipping.
+ * AI suggestions, attachments, anonymity, auto-matching, counselor
+ * verification). Update these answers to match your real backend/support
+ * process before shipping.
  */
 const FAQS: { q: string; a: string }[] = [
     {
         q: 'Who can see what I write?',
-        a: 'Only your assigned counselor can read your entries and messages. They are not visible to advisers, faculty, or other students.',
+        a: 'Only your assigned counselor can read your entries and messages. They are not visible to other students or counselors.',
     },
     {
         q: 'Is this the same as an emergency hotline?',
@@ -586,12 +589,28 @@ const FAQS: { q: string; a: string }[] = [
         a: 'No. Guided prompts help sort your entry into a category for you, and you can always just write freely instead.',
     },
     {
+        q: 'How does the platform decide which counselor I get?',
+        a: "You're automatically matched to the counselor assigned to your college department when you sign up, so you don't need to search for or request anyone.",
+    },
+    {
         q: 'Can I request a different counselor?',
         a: 'No. Your counselor is assigned based on your college, so you’ll need to work with your assigned counselor.',
     },
     {
+        q: 'How do I know counselor accounts are legitimate?',
+        a: "Counselor accounts can't be created through public sign-up. Every counselor account is manually created and verified by administrative staff before it can be used, so you're always talking to a verified member of the guidance office.",
+    },
+    {
         q: 'Do my conversations disappear after I close the tab?',
         a: 'No. Conversations are threaded and saved, so you can pick up exactly where you left off, on your own time.',
+    },
+    {
+        q: 'Will I know if my counselor has read my message?',
+        a: 'Yes. Each message shows a clear status, whether it has been sent, opened by your counselor, or answered, so you always know where things stand.',
+    },
+    {
+        q: 'Can I stay anonymous?',
+        a: 'Yes. If you choose to remain anonymous, your counselor sees a generated pseudonym instead of your real name on their end, while your full conversation history is still kept intact so support stays continuous. You can switch between anonymous and identified at any time in your account settings.',
     },
     {
         q: 'Does the AI read what I write?',
@@ -610,7 +629,7 @@ const TRUST_MARKERS: { icon: typeof ShieldCheck; label: string }[] = [
 ];
 
 /**
- * Hero side photo. Placeholder URL by design — swap `HERO_IMAGE_URL` for a
+ * Hero side photo. Placeholder URL by design, swap `HERO_IMAGE_URL` for a
  * real campus or office photo whenever it's ready; nothing else needs to
  * change.
  */
@@ -753,7 +772,8 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                                 private, guided way to reach a real guidance
                                 counselor for academic, personal, or emotional
                                 concerns on your own schedule, in your own
-                                words.
+                                words. You can share as yourself or stay
+                                anonymous, whichever feels safer.
                             </p>
 
                             <div className="mt-4">
@@ -811,9 +831,9 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                                     body: 'Add photos, videos, or files to your conversation so your counselor has the full picture.',
                                 },
                                 {
-                                    icon: Clock3,
-                                    title: 'Reach out when ready',
-                                    body: "Message anytime. You don't need to wait for office hours or explain yourself twice.",
+                                    icon: MessagesSquare,
+                                    title: 'Pressure-free messaging',
+                                    body: "It works more like a secure inbox than a live chat, so there's no pressure to reply instantly. Take the time you need to say it right.",
                                 },
                                 {
                                     icon: Lock,
@@ -821,9 +841,19 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                                     body: 'Conversations stay between you and your assigned counselor, kept confidential by design.',
                                 },
                                 {
-                                    icon: MessagesSquare,
-                                    title: 'Conversations that keep up',
-                                    body: 'Threaded messages and attachments, so context is never lost between sessions.',
+                                    icon: EyeOff,
+                                    title: 'Stay anonymous if you prefer',
+                                    body: 'Choose a generated pseudonym instead of your real name. Your counselor still sees your full conversation history, just not your identity.',
+                                },
+                                {
+                                    icon: CheckCheck,
+                                    title: 'Know it was received',
+                                    body: 'Clear status on every message, sent, opened, and answered, so you always know where things stand.',
+                                },
+                                {
+                                    icon: UserCheck,
+                                    title: 'Verified counselors only',
+                                    body: "Counselor accounts can't be self-registered. Every one is manually created and verified by administrative staff.",
                                 },
                             ].map(({ icon: Icon, title, body }) => (
                                 <Card
@@ -859,7 +889,7 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                         <h2 className="gcis-display mb-8 text-xl font-medium">
                             How it reaches your counselor
                         </h2>
-                        <div className="grid gap-8 sm:grid-cols-3">
+                        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
                             {[
                                 {
                                     n: '01',
@@ -868,13 +898,18 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                                 },
                                 {
                                     n: '02',
-                                    title: 'It’s sorted and routed privately',
-                                    body: 'Your entry is categorized and sent only to your assigned counselor and never posted publicly.',
+                                    title: 'You’re matched automatically',
+                                    body: 'Your entry is routed to the counselor assigned to your college department.',
                                 },
                                 {
                                     n: '03',
+                                    title: 'It’s sorted and kept private',
+                                    body: 'Your entry is categorized and sent only to your assigned counselor, never posted publicly.',
+                                },
+                                {
+                                    n: '04',
                                     title: 'Your counselor responds',
-                                    body: 'Continue the conversation on your own time, right where you left off.',
+                                    body: 'Continue the conversation on your own time, right where you left off, with read and reply status along the way.',
                                 },
                             ].map(({ n, title, body }) => (
                                 <div key={n}>
@@ -914,13 +949,6 @@ export default function Welcome({ counselors = [] }: WelcomeProps) {
                             </h2>
                         </div>
                         <PromptExplorer />
-                    </section>
-
-                    <section className="border-t border-border py-14">
-                        <h2 className="gcis-display mb-8 text-xl font-medium">
-                            What students say
-                        </h2>
-                        <TestimonialGrid />
                     </section>
 
                     <section className="border-t border-border py-14">
