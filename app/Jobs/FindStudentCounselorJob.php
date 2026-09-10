@@ -43,26 +43,28 @@ class FindStudentCounselorJob implements ShouldQueue
         }
 
         // Student already assigned
-        if (
-            Conversation::where('student_id', $student->id)->exists()
-        ) {
+        if (Conversation::where('student_id', $student->id)->exists()) {
             return;
         }
 
-        $studentCollege = UserCollege::where(
-            'user_id',
-            $student->id
-        )->first();
+        // Order explicitly in case a student ever has more than one college record.
+        $studentCollege = UserCollege::where('user_id', $student->id)
+            ->latest('id')
+            ->first();
 
         if (!$studentCollege) {
             Log::info('FindStudentCounselorJob: student has no college', ['student_id' => $student->id]);
             return;
         }
 
-        // Build a subquery that counts assigned students (from the same college) per counselor
+        $collegeId = $studentCollege->college_id;
+
+        // Balance load among counselors, but ONLY within the student's selected college.
+        // The frontend already guarantees this college has at least one counselor
+        // before the student can submit, so no cross-college fallback here by design.
         $loads = DB::table('conversations')
             ->join('user_colleges as uc_students', 'uc_students.user_id', '=', 'conversations.student_id')
-            ->where('uc_students.college_id', $studentCollege->college_id)
+            ->where('uc_students.college_id', $collegeId)
             ->selectRaw('conversations.counselor_id, COUNT(conversations.id) as load_count')
             ->groupBy('conversations.counselor_id');
 
@@ -73,13 +75,19 @@ class FindStudentCounselorJob implements ShouldQueue
                 $join->on('loads.counselor_id', '=', 'users.id');
             })
             ->where('users.role', UserRole::COUNSELOR->value)
-            ->where('user_colleges.college_id', $studentCollege->college_id)
+            ->where('user_colleges.college_id', $collegeId)
             ->orderByRaw('COALESCE(loads.load_count, 0) ASC')
             ->orderBy('users.id')
             ->first();
 
         if (!$counselor) {
-            Log::info('FindStudentCounselorJob: no available counselor found', ['college_id' => $studentCollege->college_id]);
+            // Should not normally happen given the frontend guard — if it does,
+            // it likely means a data mismatch (e.g. counselor's user_colleges
+            // row was removed after the student submitted).
+            Log::error('FindStudentCounselorJob: no counselor found for student college despite frontend guard', [
+                'student_id' => $student->id,
+                'college_id' => $collegeId,
+            ]);
             return;
         }
 
@@ -95,7 +103,11 @@ class FindStudentCounselorJob implements ShouldQueue
                 ['name' => $student->name],
             ));
 
-            Log::info('FindStudentCounselorJob: conversation created', ['conversation_id' => $conversation->id, 'student_id' => $student->id, 'counselor_id' => $counselor->id]);
+            Log::info('FindStudentCounselorJob: conversation created', [
+                'conversation_id' => $conversation->id,
+                'student_id' => $student->id,
+                'counselor_id' => $counselor->id,
+            ]);
         } catch (\Throwable $e) {
             Log::error('FindStudentCounselorJob: failed to create conversation', ['error' => $e->getMessage()]);
             throw $e;
