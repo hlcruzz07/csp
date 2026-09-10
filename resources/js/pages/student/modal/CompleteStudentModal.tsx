@@ -395,8 +395,8 @@ export default function CompleteStudentModal() {
                                 case record, and improving how guidance staff
                                 organize and respond to concerns. It is not used
                                 for advertising, sold to third parties, or
-                                shared outside the university's guidance and
-                                counseling function.
+                                shared outside the application and counseling
+                                function.
                             </p>
                         </section>
 
