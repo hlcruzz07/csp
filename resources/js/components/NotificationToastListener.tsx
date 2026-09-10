@@ -1,7 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { Bell, X } from 'lucide-react';
-import { useEffect } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useRef } from 'react';
 
 type PageProps = {
     auth?: {
@@ -23,7 +21,7 @@ type BroadcastNotification = {
     description?: string;
 };
 
-async function showNativeBrowserNotification(
+async function handleBrowserNotification(
     notification: BroadcastNotification,
     title: string,
     description: string,
@@ -38,6 +36,14 @@ async function showNativeBrowserNotification(
     if ('serviceWorker' in navigator) {
         try {
             const registration = await navigator.serviceWorker.ready;
+            const subscription =
+                await registration.pushManager.getSubscription();
+
+            // When tab is hidden and Web Push subscription exists, sw.js push event already handles showing native notification
+            if (subscription && document.visibilityState === 'hidden') {
+                return;
+            }
+
             await registration.showNotification(title, {
                 body: description,
                 icon: '/logo.webp',
@@ -48,31 +54,69 @@ async function showNativeBrowserNotification(
             });
             return;
         } catch (error) {
-            console.error('Error showing service worker notification:', error);
+            console.error('Error with service worker notification:', error);
         }
     }
 
+    // Fallback native notification
     try {
         const nativeNotif = new Notification(title, {
             body: description,
             icon: '/logo.webp',
             tag: tag,
-            data: {
-                url: targetUrl,
-            },
+            data: { url: targetUrl },
         });
         nativeNotif.onclick = () => {
             window.focus();
             window.location.href = targetUrl;
         };
     } catch (error) {
-        console.error('Error showing native browser notification:', error);
+        console.error('Error showing native notification:', error);
     }
 }
 
 export function NotificationToastListener() {
     const { auth } = usePage<PageProps>().props;
     const userId = auth?.user?.id;
+    const processedIdsRef = useRef<Set<string>>(new Set());
+    const unreadCountRef = useRef<number>(0);
+    const baseTitleRef = useRef<string>('');
+
+    useEffect(() => {
+        const getBaseTitle = () => {
+            return document.title.replace(/^\(\d+\)\s*/, '');
+        };
+
+        const resetUnreadCount = () => {
+            unreadCountRef.current = 0;
+            if (baseTitleRef.current) {
+                document.title = baseTitleRef.current;
+            } else if (document.title.startsWith('(')) {
+                document.title = getBaseTitle();
+            }
+        };
+
+        const handleFocus = () => {
+            resetUnreadCount();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                resetUnreadCount();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener(
+                'visibilitychange',
+                handleVisibilityChange,
+            );
+        };
+    }, []);
 
     useEffect(() => {
         if (!userId) return;
@@ -84,6 +128,19 @@ export function NotificationToastListener() {
         const channel = echo.private(channelName);
 
         channel.notification((notification: BroadcastNotification) => {
+            const notifId =
+                notification.id ??
+                `${notification.type}-${notification.data?.title}-${Date.now()}`;
+
+            // Deduplicate notifications received within 5 seconds
+            if (processedIdsRef.current.has(notifId)) {
+                return;
+            }
+            processedIdsRef.current.add(notifId);
+            setTimeout(() => {
+                processedIdsRef.current.delete(notifId);
+            }, 5000);
+
             const title =
                 notification.data?.title ??
                 notification.title ??
@@ -94,35 +151,24 @@ export function NotificationToastListener() {
                 notification.description ??
                 'You have a new notification.';
 
-            void showNativeBrowserNotification(notification, title, description);
+            void handleBrowserNotification(notification, title, description);
 
-            toast.custom(
-                (toastId) => (
-                    <div className="hidden w-[min(380px,calc(100vw-2rem))] items-start gap-3 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg sm:flex">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <Bell className="size-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="font-semibold">{title}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {description}
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            className="shrink-0 rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                            onClick={() => toast.dismiss(toastId)}
-                            aria-label="Dismiss notification"
-                        >
-                            <X className="size-4" />
-                        </button>
-                    </div>
-                ),
-                { duration: 7000 },
-            );
+            // Update tab title with unread notification count
+            const cleanTitle = document.title.replace(/^\(\d+\)\s*/, '');
+            if (cleanTitle) {
+                baseTitleRef.current = cleanTitle;
+            }
+
+            unreadCountRef.current += 1;
+            document.title = `(${unreadCountRef.current}) ${
+                baseTitleRef.current || cleanTitle || 'Counseling Support'
+            }`;
         });
 
         return () => {
+            channel.stopListening(
+                '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',
+            );
             echo.leave(channelName);
         };
     }, [userId]);

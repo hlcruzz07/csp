@@ -1,4 +1,5 @@
 import CompleteStudentModal from './modal/CompleteStudentModal';
+import { NotificationToastListener } from '@/components/NotificationToastListener';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import apiService from '@/lib/api-service';
 import { Categories, UserProps } from '@/types/entities';
@@ -509,6 +510,7 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
+            <NotificationToastListener />
             <WelcomeModal open={isOpenWelcome} setOpen={setOpenWelcome} />
             {data.attachments.length > 0 && (
                 <SendingMessageDialog open={processing} progress={progress} />
