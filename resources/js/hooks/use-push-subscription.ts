@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import apiService from '@/lib/api-service';
 import { toast } from 'sonner';
 
@@ -15,14 +15,30 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export function usePushSubscription() {
     const isSubscribingRef = useRef(false);
+    const [isEnabled, setIsEnabled] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            return;
+        }
+
+        void navigator.serviceWorker
+            .register('/sw.js')
+            .then((registration) => registration.pushManager.getSubscription())
+            .then((subscription) => setIsEnabled(Boolean(subscription)));
+    }, []);
 
     const subscribe = useCallback(async () => {
         if (isSubscribingRef.current) return;
         isSubscribingRef.current = true;
+        setIsLoading(true);
 
         try {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                alert('Push notifications are not supported in this browser.');
+                toast.error(
+                    'Push notifications are not supported in this browser.',
+                );
                 return;
             }
 
@@ -49,11 +65,13 @@ export function usePushSubscription() {
                 }));
 
             await apiService.post('/push-subscriptions', subscription.toJSON());
+            setIsEnabled(true);
             toast.success('Push notifications enabled');
         } finally {
             isSubscribingRef.current = false;
+            setIsLoading(false);
         }
     }, []);
 
-    return { subscribe };
+    return { subscribe, isEnabled, isLoading };
 }

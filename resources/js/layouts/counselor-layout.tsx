@@ -3,6 +3,7 @@ import { NotificationDropdown } from '@/components/counselor/NotificationDropdow
 import { NotificationToastListener } from '@/components/NotificationToastListener';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
 import apiService from '@/lib/api-service';
@@ -151,18 +152,11 @@ export default function CounselorLayout({
         startTour({ steps });
     };
 
-    const { subscribe } = usePushSubscription();
-
-    useEffect(() => {
-        if (
-            typeof Notification === 'undefined' ||
-            Notification.permission !== 'default'
-        ) {
-            return;
-        }
-
-        void subscribe();
-    }, [subscribe]);
+    const {
+        subscribe,
+        isEnabled,
+        isLoading: isPushLoading,
+    } = usePushSubscription();
 
     return (
         <div className="flex h-dvh overflow-hidden">
@@ -200,6 +194,23 @@ export default function CounselorLayout({
                         >
                             <HelpCircle className="size-4.5" />
                         </Button>
+
+                        <div className="group relative flex items-center">
+                            <Switch
+                                checked={isEnabled}
+                                disabled={isEnabled || isPushLoading}
+                                onCheckedChange={(checked) => {
+                                    if (checked) void subscribe();
+                                }}
+                                aria-label="Enable browser notifications"
+                                title="Enable browser notifications when you are away from this system"
+                            />
+                            <div className="pointer-events-none absolute top-full right-0 z-50 mt-2 w-64 rounded-md bg-foreground px-3 py-2 text-xs text-background opacity-0 shadow-lg transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                                Enables browser notifications when you are away
+                                from this system. It does not control the
+                                notification list inside the app.
+                            </div>
+                        </div>
 
                         <div id="tour-notifications">
                             <NotificationDropdown
