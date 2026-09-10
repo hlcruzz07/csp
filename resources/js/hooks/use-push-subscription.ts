@@ -36,7 +36,7 @@ export function usePushSubscription() {
 
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-                alert('Notification permission was not granted.');
+                toast.error('Notification permission was not granted.');
                 return;
             }
 
