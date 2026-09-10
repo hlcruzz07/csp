@@ -42,6 +42,7 @@ import {
     Grid2X2Plus,
     HelpCircle,
     ImageIcon,
+    MessageCircleQuestion,
     Music,
     Paperclip,
     Plus,
@@ -94,7 +95,7 @@ type Suggestion = {
 type PageProps = {
     conversation: Conversation;
     auth: { user: UserProps };
-    // categories: Categories[];
+    guided_prompts: string[];
     messages: Message[];
 };
 
@@ -106,7 +107,7 @@ export default function CounselorConversationShow() {
     const {
         conversation,
         auth,
-        // categories,
+        guided_prompts,
         messages: initialMessages,
     } = usePage<PageProps>().props;
 
@@ -137,6 +138,12 @@ export default function CounselorConversationShow() {
     const [openSuggestAi, setOpenSuggestAi] = useState(false);
     const [suggestMessages, setSuggestMessages] = useState<Suggestion[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
+
+    // ---- Guided prompts state ----
+    // Shown as a dismissible row of chips above the input. Only surfaced
+    // while the composer is empty so it never competes with an in-progress
+    // reply, and can be collapsed entirely for the rest of the session.
+    const [showGuidedPrompts, setShowGuidedPrompts] = useState(true);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -266,30 +273,18 @@ export default function CounselorConversationShow() {
 
     // Listen for broadcast events on this specific conversation
     useEffect(() => {
-        console.log('effect running, conversation_id =', conversation_id);
         if (!conversation_id) {
-            console.log('bailing: no conversation_id');
             return;
         }
 
         const echo = (window as any).Echo;
-        console.log('echo instance:', echo);
         if (!echo) {
             console.error('Echo is not initialized');
             return;
         }
 
         const channel = echo.private(`conversation.${conversation_id}`);
-        console.log(
-            'subscribing to channel:',
-            `conversation.${conversation_id}`,
-        );
-        channel.subscribed(() => console.log('✅ counselor subscribed'));
-        channel.error((err: any) =>
-            console.error('❌ counselor auth failed', err),
-        );
         channel.listenToAll((event: string, data: any) => {
-            console.log('📩 counselor received event', event, data);
             if (event.endsWith('MessageSent') || event === 'MessageSent') {
                 appendUniqueMessage(data.message as Message);
             }
@@ -322,14 +317,6 @@ export default function CounselorConversationShow() {
             },
         });
     };
-
-    // const selectedCategoryName = categories?.find(
-    //     (item) => item.id === data.category_id,
-    // )?.name;
-
-    // const selectedCategoryDesc = categories?.find(
-    //     (item) => item.id === data.category_id,
-    // )?.description;
 
     const suggest = async () => {
         if (isSuggesting) return;
@@ -439,6 +426,12 @@ export default function CounselorConversationShow() {
         setActiveTimestampId((prev) => (prev === id ? null : id));
     };
 
+    // Inserts a guided prompt into the composer without clobbering anything
+    // the counselor may have already started typing.
+    const applyGuidedPrompt = (prompt: string) => {
+        setData('content', data.content ? `${data.content} ${prompt}` : prompt);
+    };
+
     // ---- Tour ----
     // Only ever runs when the "?" button is clicked — no auto-start, no
     // persisted dismissal state.
@@ -490,6 +483,22 @@ export default function CounselorConversationShow() {
                 doneBtnText: 'Done',
             },
         });
+    };
+
+    const guidedPromptsScrollRef = useRef<HTMLDivElement | null>(null);
+
+    const handleGuidedPromptsWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        const node = guidedPromptsScrollRef.current;
+        if (!node) return;
+
+        // Only take over when there's actually horizontal room to scroll and the
+        // gesture is primarily vertical (a normal mouse wheel) — this leaves
+        // trackpad horizontal swipes and mobile touch scrolling untouched.
+        if (node.scrollWidth <= node.clientWidth) return;
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+
+        e.preventDefault();
+        node.scrollLeft += e.deltaY;
     };
 
     return (
@@ -753,20 +762,6 @@ export default function CounselorConversationShow() {
                     message list when it appears. */}
                 {(data.attachments.length > 0 || openSuggestAi) && (
                     <div className="absolute inset-x-3 bottom-full z-20 mb-2 flex max-h-[45vh] flex-col gap-2 overflow-y-auto rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur-sm sm:max-h-[40vh]">
-                        {/* {data.category_id && (
-                            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 p-3">
-                                <span className="text-xs text-muted-foreground">
-                                    Message Category:
-                                </span>
-                                <Badge variant="secondary">
-                                    {selectedCategoryName}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                    {selectedCategoryDesc}
-                                </span>
-                            </div>
-                        )} */}
-
                         {data.attachments.length > 0 && (
                             <AttachmentGroup className="flex flex-wrap items-start gap-2">
                                 {data.attachments.map((item, i) => {
@@ -954,6 +949,48 @@ export default function CounselorConversationShow() {
                     </div>
                 )}
 
+                {/* Guided prompts — a normal-flow row (not absolutely positioned
+                    like the panel above), so it just adds a small strip above
+                    the input instead of overlaying anything. Only shown while
+                    the composer is empty, and dismissible for the rest of the
+                    session so it never gets in a counselor's way once they know
+                    it's there. */}
+                {guided_prompts?.length > 0 &&
+                    showGuidedPrompts &&
+                    data.content.trim() === '' && (
+                        <div className="mb-2 flex items-center gap-2">
+                            <MessageCircleQuestion className="size-4 shrink-0 text-muted-foreground" />
+                            <div
+                                ref={guidedPromptsScrollRef}
+                                onWheel={handleGuidedPromptsWheel}
+                                className="flex min-w-0 flex-1 [scrollbar-width:none] gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden"
+                            >
+                                {guided_prompts.map((prompt, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        onClick={() =>
+                                            applyGuidedPrompt(prompt)
+                                        }
+                                        className="shrink-0 cursor-pointer rounded-full border bg-muted/40 px-3 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:border-primary hover:bg-muted hover:text-foreground"
+                                    >
+                                        {prompt}
+                                    </button>
+                                ))}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-6 shrink-0 rounded-full text-muted-foreground"
+                                onClick={() => setShowGuidedPrompts(false)}
+                                title="Hide guided prompts"
+                            >
+                                <XIcon className="size-3.5" />
+                            </Button>
+                        </div>
+                    )}
+
                 {/* Input Row — the only normal-flow child of the composer now.
                     Attachments + AI toggle are consolidated behind ONE trigger
                     (with a submenu for attachment types) instead of two separate
@@ -1081,32 +1118,22 @@ export default function CounselorConversationShow() {
                                     </DropdownMenuPortal>
                                 </DropdownMenuSub>
 
-                                {/* Category submenu — re-enable once `categories`
-                                    is passed back into this page's props.
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger className="cursor-pointer">
-                                        <Grid2X2Plus className="mr-2 size-4" />
-                                        <span className="flex-1">Category</span>
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal>
-                                        <DropdownMenuSubContent className="w-56">
-                                            {categories?.map((item) => (
-                                                <DropdownMenuCheckboxItem
-                                                    key={item.id}
-                                                    checked={data.category_id === item.id}
-                                                    onCheckedChange={(checked) => {
-                                                        setData('category_id', checked ? item.id : null);
-                                                    }}
-                                                >
-                                                    {item.name}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                </DropdownMenuSub>
-                                */}
-
                                 <DropdownMenuSeparator />
+
+                                {/* Guided prompts toggle — lets a counselor bring
+                                    the chip row back after dismissing it. */}
+                                {guided_prompts?.length > 0 && (
+                                    <DropdownMenuCheckboxItem
+                                        checked={showGuidedPrompts}
+                                        onCheckedChange={(checked) =>
+                                            setShowGuidedPrompts(checked)
+                                        }
+                                        className="cursor-pointer"
+                                    >
+                                        <MessageCircleQuestion className="mr-2 size-4" />
+                                        Guided Prompts
+                                    </DropdownMenuCheckboxItem>
+                                )}
 
                                 {/* AI Suggestions toggle */}
                                 <DropdownMenuCheckboxItem

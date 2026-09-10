@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\CollegeApiController;
 use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\CounselorApiController;
+use App\Http\Controllers\Api\GuidedPromptApiController;
 use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\MessageController;
@@ -14,10 +16,12 @@ Route::prefix('api/conversations')->middleware(['auth', 'verified', 'role:studen
     Route::post('/message/counselor-response', [MessageController::class, 'counselorResponse'])->name('counselorResponse');
 });
 
-
 Route::prefix('api')->middleware(['auth', 'verified', 'role:admin|counselor'])->group(function () {
     Route::get('/counselors', [CounselorApiController::class, 'paginate'])->name('paginateCounselors');
     Route::get('/notifications', [NotificationApiController::class, 'paginate'])->name('paginateNotifications');
     Route::patch('/notification/{id}/read', [NotificationApiController::class, 'read'])->name('readNotification');
     Route::patch('/notifications/{user_id}/mark-all-read', [NotificationApiController::class, 'markAllRead'])->name('markAllNotificationsRead');
+
+    Route::get('/colleges', [CollegeApiController::class, 'paginate'])->name('paginateColleges');
+    Route::get('/guided-prompts', [GuidedPromptApiController::class, 'paginate'])->name('paginateGuidedPrompts');
 });

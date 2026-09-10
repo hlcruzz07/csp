@@ -66,6 +66,8 @@ export interface College {
     id: number;
     code: string;
     name: string;
+    student_count?: number;
+    counselor_count?: number;
     created_at: string;
     updated_at: string;
     laravel_through_key?: number;
@@ -125,4 +127,10 @@ export interface User {
     updated_at: string;
     assigned_college?: College;
     student_conversation?: StudentConversation;
+}
+export interface GuidedPrompt {
+    id?: number;
+    name: string;
+    created_at?: string;
+    updated_at?: string;
 }

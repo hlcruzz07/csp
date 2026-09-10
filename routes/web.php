@@ -3,11 +3,14 @@
 use App\Enums\UserRole;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\CollegeController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CounselorController;
+use App\Http\Controllers\GuidedPromptController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StudentController;
+use App\Models\GuidedPrompt;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -39,6 +42,15 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(fu
     Route::get('/counselors', [AdminController::class, 'counselors'])->name('counselors');
     Route::patch('/counselor/{id}/update', [AdminController::class, 'updateCounselor'])->name('updateCounselor');
     Route::post('/counselor/create', [AdminController::class, 'createCounselor'])->name('createCounselor');
+
+    Route::get('/colleges', [CollegeController::class, 'index'])->name('colleges');
+    Route::patch('/college/{id}/update', [CollegeController::class, 'update'])->name('updateCollege');
+    Route::post('/college/store', [CollegeController::class, 'store'])->name('createCollege');
+
+    Route::get('/guided-prompts', [GuidedPromptController::class, 'index'])->name('guidedPrompts');
+    Route::patch('/guided-prompt/{id}/update', [GuidedPromptController::class, 'update'])->name('updatePrompt');
+    Route::post('/guided-prompt/store', [GuidedPromptController::class, 'store'])->name('createPrompt');
+    Route::delete('/guided-prompt/{id}/delete', [GuidedPromptController::class, 'destroy'])->name('deletePrompt');
 });
 Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->group(function () {
 
@@ -62,7 +74,7 @@ Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counsel
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
 });
 
-Route::post('/push-subscriptions', function (\Illuminate\Http\Request $request) {
+Route::post('/push-subscriptions', function (Request $request) {
     $request->user()->updatePushSubscription(
         $request->endpoint,
         $request->keys['p256dh'],

@@ -6,6 +6,7 @@ use App\Enums\MessageStatus;
 use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\GuidedPrompt;
 use App\Models\User;
 use App\Notifications\SendNotification;
 use Illuminate\Http\Request;
@@ -98,6 +99,7 @@ class CounselorController extends Controller
             'conversation' => $conversation,
             'conversations' => $conversations,
             'categories' => Category::all(),
+            'guided_prompts' => GuidedPrompt::pluck('name')->toArray()
         ]);
     }
     /**

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import apiService from '@/lib/api-service';
-import { adminDashboard } from '@/routes';
+import { adminDashboard, counselors } from '@/routes';
 import type { College, Counselor } from '@/types/entities';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolveAvatarUrl } from '@/lib/utils';
@@ -385,8 +385,8 @@ export default function Index() {
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Dashboard',
-            href: adminDashboard(),
+            title: 'Counselors',
+            href: counselors(),
         },
     ],
 };

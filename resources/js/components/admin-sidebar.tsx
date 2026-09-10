@@ -1,5 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Users } from 'lucide-react';
+import {
+    GraduationCap,
+    LayoutGrid,
+    MessageCircleCodeIcon,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -12,7 +17,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { adminDashboard, counselors } from '@/routes';
+import { adminDashboard, colleges, counselors, guidedPrompts } from '@/routes';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -25,6 +30,16 @@ const mainNavItems: NavItem[] = [
         title: 'Counselors',
         href: counselors(),
         icon: Users,
+    },
+    {
+        title: 'Colleges',
+        href: colleges(),
+        icon: GraduationCap,
+    },
+    {
+        title: 'Guided Prompts',
+        href: guidedPrompts(),
+        icon: MessageCircleCodeIcon,
     },
 ];
 
