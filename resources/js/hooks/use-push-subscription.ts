@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import apiService from '@/lib/api-service';
 import { toast } from 'sonner';
 
@@ -14,34 +14,45 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function usePushSubscription() {
+    const isSubscribingRef = useRef(false);
+
     const subscribe = useCallback(async () => {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            alert('Push notifications are not supported in this browser.');
-            return;
+        if (isSubscribingRef.current) return;
+        isSubscribingRef.current = true;
+
+        try {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                alert('Push notifications are not supported in this browser.');
+                return;
+            }
+
+            if (!VAPID_PUBLIC_KEY) {
+                toast.error('Push notifications are not configured yet.');
+                return;
+            }
+
+            const registration =
+                await navigator.serviceWorker.register('/sw.js');
+
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Notification permission was not granted.');
+                return;
+            }
+
+            const subscription =
+                (await registration.pushManager.getSubscription()) ??
+                (await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey:
+                        urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+                }));
+
+            await apiService.post('/push-subscriptions', subscription.toJSON());
+            toast.success('Push notifications enabled');
+        } finally {
+            isSubscribingRef.current = false;
         }
-
-        if (!VAPID_PUBLIC_KEY) {
-            toast.error('Push notifications are not configured yet.');
-            return;
-        }
-
-        const registration = await navigator.serviceWorker.register('/sw.js');
-
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            alert('Notification permission was not granted.');
-            return;
-        }
-
-        const subscription =
-            (await registration.pushManager.getSubscription()) ??
-            (await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-            }));
-
-        await apiService.post('/push-subscriptions', subscription.toJSON());
-        toast.success('Push notifications enabled');
     }, []);
 
     return { subscribe };

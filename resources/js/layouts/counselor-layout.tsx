@@ -151,6 +151,19 @@ export default function CounselorLayout({
         startTour({ steps });
     };
 
+    const { subscribe } = usePushSubscription();
+
+    useEffect(() => {
+        if (
+            typeof Notification === 'undefined' ||
+            Notification.permission !== 'default'
+        ) {
+            return;
+        }
+
+        void subscribe();
+    }, [subscribe]);
+
     return (
         <div className="flex h-dvh overflow-hidden">
             <NotificationToastListener />

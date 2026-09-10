@@ -17,10 +17,41 @@ type BroadcastNotification = {
     data?: {
         title?: string;
         description?: string;
+        url?: string;
     };
     title?: string;
     description?: string;
 };
+
+async function showHiddenTabNotification(
+    notification: BroadcastNotification,
+    title: string,
+    description: string,
+) {
+    if (
+        document.visibilityState !== 'hidden' ||
+        !('Notification' in window) ||
+        Notification.permission !== 'granted' ||
+        !('serviceWorker' in navigator)
+    ) {
+        return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    // Web Push already shows the native notification when subscribed.
+    if (subscription) return;
+
+    await registration.showNotification(title, {
+        body: description,
+        icon: '/logo.webp',
+        tag: notification.id ?? `notification-${Date.now()}`,
+        data: {
+            url: notification.data?.url ?? '/dashboard',
+        },
+    });
+}
 
 export function NotificationToastListener() {
     const { auth } = usePage<PageProps>().props;
@@ -45,6 +76,8 @@ export function NotificationToastListener() {
                 notification.data?.description ??
                 notification.description ??
                 'You have a new notification.';
+
+            void showHiddenTabNotification(notification, title, description);
 
             toast.custom(
                 (toastId) => (
