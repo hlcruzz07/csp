@@ -723,19 +723,6 @@ export default function CounselorConversationShow() {
                                                                     </span>
                                                                 </div>
                                                             )}
-
-                                                        {isMine &&
-                                                            index ===
-                                                                messages.length -
-                                                                    1 && (
-                                                                <div className="mt-1 flex items-center justify-end gap-2">
-                                                                    <small className="text-xs text-muted-foreground">
-                                                                        {
-                                                                            message.status
-                                                                        }
-                                                                    </small>
-                                                                </div>
-                                                            )}
                                                     </div>
                                                 </div>
                                             )}
