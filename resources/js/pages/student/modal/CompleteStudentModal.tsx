@@ -226,17 +226,26 @@ export default function CompleteStudentModal() {
                         {/* Crisis Disclaimer */}
                         <div className="space-y-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
                             <h4 className="font-medium">
-                                Crisis & Emergency Support Disclaimer
+                                Support & Counseling Disclaimer
                             </h4>
 
                             <p className="text-sm text-muted-foreground">
-                                This platform is intended for student support
-                                and communication purposes only. It is not
-                                designed to provide emergency, crisis, or
-                                suicide intervention services. If you are
-                                experiencing an immediate emergency, please
-                                contact local emergency services or a crisis
-                                hotline.
+                                This platform is intended to serve as a support
+                                tool that encourages students to seek help and
+                                improve communication with counselors. However,
+                                it{' '}
+                                <strong>
+                                    does not replace in-person counseling or
+                                    professional mental health care
+                                </strong>
+                                .
+                                <br /> <br />
+                                This platform is not equipped to handle
+                                emergencies, crises, or situations involving
+                                risk to life, such as suicide. If you or someone
+                                you know is in immediate danger, please contact
+                                your local emergency services or reach out to a
+                                crisis hotline right away.
                             </p>
 
                             <div className="flex items-start gap-2">
@@ -250,15 +259,19 @@ export default function CompleteStudentModal() {
                                         )
                                     }
                                 />
-                                <Label htmlFor="crisis-consent">
-                                    I understand that this platform is not an
-                                    emergency or crisis intervention service.
+                                <Label
+                                    htmlFor="crisis-consent"
+                                    className="text-sm"
+                                >
+                                    I understand that this platform is a support
+                                    tool only and does not replace in-person
+                                    counseling, professional mental health care,
+                                    or emergency services.
                                 </Label>
                             </div>
 
                             <InputError message={errors['crisis_given']} />
                         </div>
-
                         {/* Identity Preference */}
                         <div className="grid gap-3">
                             <Label>
