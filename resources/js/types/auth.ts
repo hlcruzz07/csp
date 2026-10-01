@@ -7,7 +7,7 @@ export type User = {
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
-    role: string;
+    role: 'admin' | 'counselor' | 'student';
     [key: string]: unknown;
 };
 

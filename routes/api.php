@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminApiController;
 use App\Http\Controllers\Api\CollegeApiController;
 use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\CounselorApiController;
@@ -24,4 +25,7 @@ Route::prefix('api')->middleware(['auth', 'verified', 'role:admin|counselor'])->
 
     Route::get('/colleges', [CollegeApiController::class, 'paginate'])->name('paginateColleges');
     Route::get('/guided-prompts', [GuidedPromptApiController::class, 'paginate'])->name('paginateGuidedPrompts');
+
+    Route::get('/users/paginate', [AdminApiController::class, 'paginate'])->name('paginateUsers');
+
 });

@@ -25,4 +25,17 @@ enum NotificationType: string
             self::NEW_MESSAGE => 'You received a message from :name',
         };
     }
+
+    public static function chatTimelineTypes(): array
+    {
+        return [
+            self::CHAT_UPDATED,
+            // self::NEW_CHAT_ASSIGNED,
+        ];
+    }
+
+    public function showInChat(): bool
+    {
+        return in_array($this, self::chatTimelineTypes(), true);
+    }
 }

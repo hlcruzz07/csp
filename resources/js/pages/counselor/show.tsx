@@ -1,6 +1,6 @@
 import CounselorLayout from '@/layouts/counselor-layout';
 import { Categories, Conversation, UserProps } from '@/types/entities';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, Fragment, useEffect, useRef, useState } from 'react';
 import apiService from '@/lib/api-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +15,13 @@ import {
 } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
+    conversationNotices,
     counselorResponse,
     fetchMessages,
+    markSeen,
     sendMessage,
     suggestMessage,
+    summarizeConversation,
 } from '@/routes';
 import { EmptyState } from '@/components/counselor/EmptyState';
 import dayjs from 'dayjs';
@@ -35,6 +38,9 @@ import {
 } from '@/components/ui/attachment';
 import {
     Briefcase,
+    Check,
+    CheckCheck,
+    Copy,
     FileIcon,
     FilePlus,
     FileText,
@@ -42,10 +48,12 @@ import {
     Grid2X2Plus,
     HelpCircle,
     ImageIcon,
+    Info,
     MessageCircleQuestion,
     Music,
     Paperclip,
     Plus,
+    RefreshCw,
     SendHorizontal,
     Sparkles,
     Tag,
@@ -57,6 +65,14 @@ import InputEmoji from 'react-input-emoji';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -87,9 +103,20 @@ type Message = {
     created_at: string;
 };
 
+// Backend lifecycle (MessageStatus): sent → seen → responded
+const statusOf = (m: Message) => (m.status ?? '').toLowerCase();
+
 type Suggestion = {
     title: string;
     message: string;
+};
+
+// System notices (e.g. "Chat Updated") shown inline with the messages.
+type Notice = {
+    id: string;
+    type: string;
+    description: string;
+    created_at: string;
 };
 
 type PageProps = {
@@ -135,15 +162,26 @@ export default function CounselorConversationShow() {
     const skipAutoScrollRef = useRef(false);
 
     // ---- Composer / AI suggestion state ----
-    const [openSuggestAi, setOpenSuggestAi] = useState(false);
+    // AI suggestions are on by default when the page loads. The counselor can
+    // still turn them off from the "+" options menu.
+    const [openSuggestAi, setOpenSuggestAi] = useState(true);
     const [suggestMessages, setSuggestMessages] = useState<Suggestion[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
+
+    // ---- Inline notices (chat updated, etc.) ----
+    const [notices, setNotices] = useState<Notice[]>([]);
 
     // ---- Guided prompts state ----
     // Shown as a dismissible row of chips above the input. Only surfaced
     // while the composer is empty so it never competes with an in-progress
     // reply, and can be collapsed entirely for the rest of the session.
     const [showGuidedPrompts, setShowGuidedPrompts] = useState(true);
+
+    // ---- Conversation summary state ----
+    const [summaryOpen, setSummaryOpen] = useState(false);
+    const [summary, setSummary] = useState('');
+    const [isSummarizing, setIsSummarizing] = useState(false);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -254,7 +292,7 @@ export default function CounselorConversationShow() {
         if (!shouldStickToBottomRef.current) return;
 
         requestAnimationFrame(() => requestAnimationFrame(setScrollBottom));
-    }, [messages]);
+    }, [messages, notices]);
 
     const handleScroll = () => {
         const node = containerRef.current;
@@ -286,12 +324,136 @@ export default function CounselorConversationShow() {
         const channel = echo.private(`conversation.${conversation_id}`);
         channel.listenToAll((event: string, data: any) => {
             if (event.endsWith('MessageSent') || event === 'MessageSent') {
-                appendUniqueMessage(data.message as Message);
+                const incoming = data.message as Message;
+                appendUniqueMessage(incoming);
+            }
+
+            // The other side opened the conversation — my sent messages
+            // become seen (never downgrade responded). Payload: { reader_id }
+            if (event.endsWith('MessageSeen') || event === 'MessageSeen') {
+                if (data.reader_id === auth.user.id) return;
+
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.sender_id === auth.user.id && statusOf(m) === 'sent'
+                            ? { ...m, status: 'seen' }
+                            : m,
+                    ),
+                );
             }
         });
 
         return () => echo.leave(`conversation.${conversation_id}`);
     }, [conversation_id]);
+
+    // ---- Seen receipts ----
+    // Tell the server the other side's messages were read, but only while this
+    // tab is actually visible. Re-runs whenever new messages arrive or the tab
+    // regains focus. The ref stops duplicate requests while one is in flight.
+    const markingSeenRef = useRef(false);
+
+    const markIncomingSeen = async () => {
+        if (!conversation_id || markingSeenRef.current) return;
+        if (document.visibilityState !== 'visible') return;
+
+        const hasUnseenIncoming = messages.some(
+            (m) => m.sender_id !== auth.user.id && statusOf(m) === 'sent',
+        );
+        if (!hasUnseenIncoming) return;
+
+        markingSeenRef.current = true;
+        try {
+            await apiService.post(markSeen(conversation_id).url);
+            setMessages((prev) =>
+                prev.map((m) =>
+                    m.sender_id !== auth.user.id && statusOf(m) === 'sent'
+                        ? { ...m, status: 'seen' }
+                        : m,
+                ),
+            );
+        } catch (error) {
+            console.error('Error marking messages as seen', error);
+        } finally {
+            markingSeenRef.current = false;
+        }
+    };
+
+    useEffect(() => {
+        void markIncomingSeen();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messages, conversation_id]);
+
+    useEffect(() => {
+        const onVisible = () => void markIncomingSeen();
+        document.addEventListener('visibilitychange', onVisible);
+        return () =>
+            document.removeEventListener('visibilitychange', onVisible);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messages, conversation_id]);
+
+    // ---- Inline notices ----
+    // Only notification types the backend flags with show_in_chat are shown
+    // here (see NotificationType::chatTimelineTypes()).
+    const loadNotices = () => {
+        if (!conversation_id) return;
+
+        apiService
+            .get(conversationNotices(conversation_id).url)
+            .then(({ data: res }) => setNotices(res.notices ?? []))
+            .catch((error) => console.error('Error loading notices', error));
+    };
+
+    useEffect(() => {
+        loadNotices();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversation_id]);
+
+    // The counselor's own notices (e.g. a profile picture change) are stored
+    // without a broadcast, so refetch after any successful Inertia visit.
+    useEffect(() => {
+        const off = router.on('success', () => loadNotices());
+        return () => off();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversation_id]);
+
+    useEffect(() => {
+        if (!conversation_id) return;
+
+        const echo = (window as any).Echo;
+        if (!echo) return;
+
+        const channel = echo.private(`App.Models.User.${auth.user.id}`);
+        const handler = (n: any) => {
+            if (!n?.show_in_chat || n.conversation_uuid !== conversation_id) {
+                return;
+            }
+
+            setNotices((prev) =>
+                prev.some((item) => item.id === n.id)
+                    ? prev
+                    : [
+                          ...prev,
+                          {
+                              id: n.id,
+                              type: n.title,
+                              description: n.description,
+                              created_at: new Date().toISOString(),
+                          },
+                      ],
+            );
+        };
+
+        channel.notification(handler);
+
+        return () => {
+            // stopListening (not leave) so other listeners on this user
+            // channel, like the toast listener, keep working.
+            channel.stopListening(
+                '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',
+                handler,
+            );
+        };
+    }, [conversation_id, auth.user.id]);
 
     // ---- Composer handlers ----
     const handleSend = (e: FormEvent) => {
@@ -432,6 +594,40 @@ export default function CounselorConversationShow() {
         setData('content', data.content ? `${data.content} ${prompt}` : prompt);
     };
 
+    // ---- Conversation summary ----
+    // The backend reads the full conversation by uuid, so the summary covers
+    // everything — not just the messages currently paged into this view.
+    const summarize = async () => {
+        if (isSummarizing) return;
+        setIsSummarizing(true);
+        setSummaryError(null);
+        try {
+            const { data: res } = await apiService.post(
+                summarizeConversation(conversation_id).url,
+            );
+            setSummary(res.summary ?? '');
+        } catch (error) {
+            console.error('Error summarizing conversation', error);
+            setSummaryError('Could not generate a summary. Please try again.');
+        } finally {
+            setIsSummarizing(false);
+        }
+    };
+
+    const openSummary = () => {
+        setSummaryOpen(true);
+        if (!summary) void summarize();
+    };
+
+    const copySummary = async () => {
+        try {
+            await navigator.clipboard.writeText(summary);
+            toast.success('Summary copied');
+        } catch {
+            toast.error('Could not copy the summary');
+        }
+    };
+
     // ---- Tour ----
     // Only ever runs when the "?" button is clicked — no auto-start, no
     // persisted dismissal state.
@@ -445,6 +641,15 @@ export default function CounselorConversationShow() {
                         description:
                             'This is the student currently assigned to this conversation. Keep this card in view while you respond to their messages.',
                         side: 'top' as const,
+                    },
+                },
+                {
+                    element: '#tour-summarize',
+                    popover: {
+                        title: 'Summarize conversation',
+                        description:
+                            'Get a quick AI-generated overview of your conversation with this student — handy before a follow-up or session.',
+                        side: 'bottom' as const,
                     },
                 },
                 {
@@ -501,12 +706,136 @@ export default function CounselorConversationShow() {
         node.scrollLeft += e.deltaY;
     };
 
+    // ---- Inline notices placement ----
+    // While older pages are still unloaded, hide notices older than the
+    // oldest loaded message so they don't float above a gap in the history.
+    const timeOf = (iso: string) => new Date(iso).getTime();
+    const firstLoadedAt = messages[0] ? timeOf(messages[0].created_at) : null;
+    const allLoaded = currentPage >= lastPage;
+    const visibleNotices = [...notices]
+        .filter(
+            (n) =>
+                allLoaded ||
+                firstLoadedAt === null ||
+                timeOf(n.created_at) >= firstLoadedAt,
+        )
+        .sort((a, b) => timeOf(a.created_at) - timeOf(b.created_at));
+
+    const noticesBefore = (index: number) => {
+        const current = timeOf(messages[index].created_at);
+        const previous =
+            index > 0 ? timeOf(messages[index - 1].created_at) : -Infinity;
+
+        return visibleNotices.filter((n) => {
+            const t = timeOf(n.created_at);
+            return t <= current && t > previous;
+        });
+    };
+
+    const lastMessageTime = messages.length
+        ? timeOf(messages[messages.length - 1].created_at)
+        : -Infinity;
+    const trailingNotices = visibleNotices.filter(
+        (n) => timeOf(n.created_at) > lastMessageTime,
+    );
+
+    const renderNotice = (notice: Notice) => (
+        <div
+            key={`notice-${notice.id}`}
+            className="my-1 flex flex-col items-center gap-1"
+        >
+            <span className="flex max-w-[90%] items-center gap-1.5 rounded-full border bg-background px-3 py-1 text-center text-xs text-muted-foreground">
+                <Info className="size-3 shrink-0 text-primary" />
+                {notice.description}
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+                {dayjs(notice.created_at).format('MMM D, YYYY - hh:mm A')}
+            </span>
+        </div>
+    );
+
+    // ---- Messenger-style delivery status ----
+    // Shown only under the LAST message I sent, straight from the backend
+    // status: sent → seen → responded.
+    let lastMineIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].sender_id === auth.user.id) {
+            lastMineIndex = i;
+            break;
+        }
+    }
+    const lastMine = lastMineIndex !== -1 ? messages[lastMineIndex] : null;
+    const myStatus: 'sent' | 'seen' | 'responded' | null = lastMine
+        ? statusOf(lastMine) === 'responded'
+            ? 'responded'
+            : statusOf(lastMine) === 'seen'
+              ? 'seen'
+              : 'sent'
+        : null;
+    const statusLabel =
+        myStatus === 'responded'
+            ? 'Responded'
+            : myStatus === 'seen'
+              ? 'Seen'
+              : 'Sent';
+
     return (
         <div className="flex h-full flex-col overflow-hidden bg-background">
             {/* Header */}
             {data.attachments.length > 0 && (
                 <SendingMessageDialog open={processing} progress={progress} />
             )}
+            <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="size-4 text-primary" />
+                            Conversation summary
+                        </DialogTitle>
+                        <DialogDescription>
+                            AI-generated overview of your conversation with this
+                            student. Review it before relying on it.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="max-h-[50vh] overflow-y-auto rounded-lg border bg-muted/30 p-3 text-sm">
+                        {isSummarizing ? (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Spinner />
+                                <span>Summarizing conversation...</span>
+                            </div>
+                        ) : summaryError ? (
+                            <p className="text-destructive">{summaryError}</p>
+                        ) : (
+                            <p className="whitespace-pre-wrap">{summary}</p>
+                        )}
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:justify-between">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={summarize}
+                            disabled={isSummarizing}
+                        >
+                            <RefreshCw className="size-4" />
+                            Regenerate
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={copySummary}
+                            disabled={!summary || isSummarizing}
+                        >
+                            <Copy className="size-4" />
+                            Copy
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <div className="flex items-center justify-between p-3">
                 <div
                     id="tour-assigned-student"
@@ -547,16 +876,32 @@ export default function CounselorConversationShow() {
                     </div>
                 </div>
 
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    className="rounded-full"
-                    onClick={runComposerTour}
-                    title="Show tutorial"
-                >
-                    <HelpCircle className="size-4.5" />
-                </Button>
+                <div className="flex items-center gap-1">
+                    <Button
+                        id="tour-summarize"
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        className="rounded-full"
+                        onClick={openSummary}
+                        disabled={messages.length === 0}
+                        title="Summarize conversation"
+                    >
+                        <FileText className="size-4" />
+                        <span className="hidden sm:inline">Summarize</span>
+                    </Button>
+
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        className="rounded-full"
+                        onClick={runComposerTour}
+                        title="Show tutorial"
+                    >
+                        <HelpCircle className="size-4.5" />
+                    </Button>
+                </div>
             </div>
 
             {/* Messages — h-full swapped for min-h-0 flex-1: inside a flex-col
@@ -580,161 +925,183 @@ export default function CounselorConversationShow() {
                             message.sender?.is_anonymous === true;
                         const shouldShowAvatar = !isSenderAnonymous;
                         const displayName = isSenderAnonymous
-                            ? 'Anonymous'
+                            ? normalizeName(message.sender?.pseudonym)
                             : normalizeName(message.sender?.name);
                         return (
-                            <div
-                                key={index}
-                                className={`flex cursor-pointer items-end gap-2 select-none ${isMine ? 'flex-row-reverse' : ''}`}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => toggleTimestamp(message.id)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        toggleTimestamp(message.id);
-                                    }
-                                }}
-                            >
-                                <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
-                                    <AvatarImage
-                                        src={
-                                            shouldShowAvatar
-                                                ? resolveAvatarUrl(
-                                                      message.sender?.avatar,
-                                                  )
-                                                : '/default.webp'
+                            <Fragment key={message.id ?? index}>
+                                {noticesBefore(index).map(renderNotice)}
+                                <div
+                                    className={`flex cursor-pointer items-end gap-2 select-none ${isMine ? 'flex-row-reverse' : ''}`}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => toggleTimestamp(message.id)}
+                                    onKeyDown={(e) => {
+                                        if (
+                                            e.key === 'Enter' ||
+                                            e.key === ' '
+                                        ) {
+                                            e.preventDefault();
+                                            toggleTimestamp(message.id);
                                         }
-                                        alt={displayName}
-                                        className="object-cover"
-                                    />
-                                    <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black shadow-md sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
-                                        {getInitials(displayName ?? '')}
-                                    </AvatarFallback>
-                                </Avatar>
+                                    }}
+                                >
+                                    <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
+                                        <AvatarImage
+                                            src={
+                                                shouldShowAvatar
+                                                    ? resolveAvatarUrl(
+                                                          message.sender
+                                                              ?.avatar,
+                                                      )
+                                                    : '/default.webp'
+                                            }
+                                            alt={displayName}
+                                            className="object-cover"
+                                        />
+                                        <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black shadow-md sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
+                                            {getInitials(displayName ?? '')}
+                                        </AvatarFallback>
+                                    </Avatar>
 
-                                <div className="flex max-w-[60%] flex-col items-start lg:max-w-[40%]">
-                                    <div
-                                        className={`flex items-center text-xs sm:text-sm`}
-                                    >
-                                        <small className="text-xs text-foreground/80 sm:text-sm">
-                                            {!isMine && displayName}
-                                        </small>
-                                    </div>
+                                    <div className="flex max-w-[60%] flex-col items-start lg:max-w-[40%]">
+                                        <div
+                                            className={`flex items-center text-xs sm:text-sm`}
+                                        >
+                                            <small className="text-xs text-foreground/80 sm:text-sm">
+                                                {!isMine && displayName}
+                                            </small>
+                                        </div>
 
-                                    {/* Messenger-style timestamp: hidden by default,
+                                        {/* Messenger-style timestamp: hidden by default,
                                         centered above the bubble, revealed on tap/click
                                         of the message. Replaces the old hover Tooltip,
                                         which doesn't work on touch devices. */}
-                                    <div className="flex w-full flex-col items-center">
-                                        {activeTimestampId === message.id && (
-                                            <span className="mb-1 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
-                                                {dayjs(
-                                                    message.created_at,
-                                                ).format(
-                                                    'MMM D, YYYY - hh:mm A',
-                                                )}
-                                            </span>
-                                        )}
-
-                                        <div
-                                            className={`w-full ${message.is_structured && 'mt-4'}`}
-                                        >
-                                            {message.attachments?.length >
-                                                0 && (
-                                                // Attachments (images, videos,
-                                                // audio, files) open their own
-                                                // preview/modal on click. That
-                                                // click still bubbles through
-                                                // the React tree even when the
-                                                // modal renders in a portal, so
-                                                // without stopping it here,
-                                                // opening AND closing the modal
-                                                // would each re-trigger
-                                                // toggleTimestamp on the parent
-                                                // — this keeps attachment
-                                                // interactions fully isolated
-                                                // from the timestamp toggle,
-                                                // regardless of attachment type.
-                                                <div
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                >
-                                                    <AttachmentsGrid
-                                                        attachments={
-                                                            message.attachments
-                                                        }
-                                                    />
-                                                </div>
+                                        <div className="flex w-full flex-col items-center">
+                                            {activeTimestampId ===
+                                                message.id && (
+                                                <span className="mb-1 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+                                                    {dayjs(
+                                                        message.created_at,
+                                                    ).format(
+                                                        'MMM D, YYYY - hh:mm A',
+                                                    )}
+                                                </span>
                                             )}
-                                            {message.content && (
-                                                <div
-                                                    className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-                                                >
+
+                                            <div
+                                                className={`w-full ${message.is_structured && 'mt-4'}`}
+                                            >
+                                                {message.attachments?.length >
+                                                    0 && (
+                                                    // Attachments (images, videos,
+                                                    // audio, files) open their own
+                                                    // preview/modal on click. That
+                                                    // click still bubbles through
+                                                    // the React tree even when the
+                                                    // modal renders in a portal, so
+                                                    // without stopping it here,
+                                                    // opening AND closing the modal
+                                                    // would each re-trigger
+                                                    // toggleTimestamp on the parent
+                                                    // — this keeps attachment
+                                                    // interactions fully isolated
+                                                    // from the timestamp toggle,
+                                                    // regardless of attachment type.
                                                     <div
-                                                        className={`relative max-w-full ${
-                                                            message.is_structured
-                                                                ? 'group'
-                                                                : ''
-                                                        }`}
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
                                                     >
-                                                        {message.is_structured && (
-                                                            <span
-                                                                className={`absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow`}
-                                                            >
-                                                                <Sparkles className="h-3 w-3" />
-                                                                AI Suggested
-                                                            </span>
-                                                        )}
-
-                                                        {message.is_structured && (
-                                                            <>
-                                                                <Sparkles className="absolute -top-2 -left-2 h-4 w-4 text-yellow-400 drop-shadow-sm" />
-                                                                <Sparkles className="absolute -top-1 -right-2 h-3 w-3 text-violet-400 opacity-80" />
-                                                                <Sparkles className="absolute -right-1 bottom-3 h-3.5 w-3.5 text-sky-400 opacity-80" />
-                                                            </>
-                                                        )}
-
-                                                        <p
-                                                            className={`p-3 px-4 text-sm font-medium transition-all sm:text-base ${
-                                                                isMine
-                                                                    ? 'overflow-hidden rounded-t-3xl rounded-tr-3xl rounded-br-sm rounded-bl-3xl bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                                                                    : 'rounded-t-3xl rounded-tl-3xl rounded-br-3xl rounded-bl-sm bg-background'
-                                                            } ${
-                                                                message.is_structured
-                                                                    ? 'shadow-[0_0_18px_rgba(168,85,247,0.25)] ring-2 ring-violet-300/60'
-                                                                    : ''
-                                                            } `}
-                                                        >
-                                                            {message.content}
-                                                        </p>
-
-                                                        {message.category &&
-                                                            !isMine && (
-                                                                <div className="mt-1 flex justify-end">
-                                                                    <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
-                                                                        <Tag className="h-3 w-3" />
-                                                                        {
-                                                                            message
-                                                                                .category
-                                                                                .name
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                        <AttachmentsGrid
+                                                            attachments={
+                                                                message.attachments
+                                                            }
+                                                        />
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
+                                                {message.content && (
+                                                    <div
+                                                        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                    >
+                                                        <div
+                                                            className={`relative max-w-full ${
+                                                                message.is_structured
+                                                                    ? 'group'
+                                                                    : ''
+                                                            }`}
+                                                        >
+                                                            {message.is_structured && (
+                                                                <span
+                                                                    className={`absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow`}
+                                                                >
+                                                                    <Sparkles className="h-3 w-3" />
+                                                                    AI Suggested
+                                                                </span>
+                                                            )}
+
+                                                            {message.is_structured && (
+                                                                <>
+                                                                    <Sparkles className="absolute -top-2 -left-2 h-4 w-4 text-yellow-400 drop-shadow-sm" />
+                                                                    <Sparkles className="absolute -top-1 -right-2 h-3 w-3 text-violet-400 opacity-80" />
+                                                                    <Sparkles className="absolute -right-1 bottom-3 h-3.5 w-3.5 text-sky-400 opacity-80" />
+                                                                </>
+                                                            )}
+
+                                                            <p
+                                                                className={`p-3 px-4 text-sm font-medium transition-all sm:text-base ${
+                                                                    isMine
+                                                                        ? 'overflow-hidden rounded-t-3xl rounded-tr-3xl rounded-br-sm rounded-bl-3xl bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                                                                        : 'rounded-t-3xl rounded-tl-3xl rounded-br-3xl rounded-bl-sm bg-background'
+                                                                } ${
+                                                                    message.is_structured
+                                                                        ? 'shadow-[0_0_18px_rgba(168,85,247,0.25)] ring-2 ring-violet-300/60'
+                                                                        : ''
+                                                                } `}
+                                                            >
+                                                                {
+                                                                    message.content
+                                                                }
+                                                            </p>
+
+                                                            {message.category &&
+                                                                !isMine && (
+                                                                    <div className="mt-1 flex justify-end">
+                                                                        <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
+                                                                            <Tag className="h-3 w-3" />
+                                                                            {
+                                                                                message
+                                                                                    .category
+                                                                                    .name
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {index === lastMineIndex && (
+                                                    <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+                                                        {myStatus === 'sent' ? (
+                                                            <Check className="size-3" />
+                                                        ) : (
+                                                            <CheckCheck className="size-3 text-primary" />
+                                                        )}
+                                                        <span>
+                                                            {statusLabel}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </Fragment>
                         );
                     })
                 ) : (
                     <EmptyState />
                 )}
+                {trailingNotices.map(renderNotice)}
             </div>
 
             {/* Composer */}

@@ -1,6 +1,6 @@
 import CompleteStudentModal from './modal/CompleteStudentModal';
 import { NotificationToastListener } from '@/components/NotificationToastListener';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, Fragment, useEffect, useRef, useState } from 'react';
 import apiService from '@/lib/api-service';
 import { Categories, UserProps } from '@/types/entities';
 import MatchingCounselorModal from './modal/MatchingCounselorModal';
@@ -20,7 +20,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { startTour } from '@/lib/tour';
 import {
     checkConversation,
+    conversationNotices,
     fetchMessages,
+    markSeen,
     sendMessage,
     suggestMessage,
 } from '@/routes';
@@ -40,6 +42,8 @@ import {
 import {
     Bell,
     BellOff,
+    Check,
+    CheckCheck,
     FileIcon,
     FilePlus,
     FilePlus2Icon,
@@ -48,6 +52,8 @@ import {
     HelpCircle,
     ImageIcon,
     ImagePlusIcon,
+    Info,
+    MessageCircleQuestion,
     Music,
     Paperclip,
     Plus,
@@ -97,9 +103,20 @@ type Message = {
     created_at: string;
 };
 
+// Backend lifecycle (MessageStatus): sent → seen → responded
+const statusOf = (m: Message) => (m.status ?? '').toLowerCase();
+
 type Suggestion = {
     title: string;
     message: string;
+};
+
+// System notices (e.g. "Chat Updated") shown inline with the messages.
+type Notice = {
+    id: string;
+    type: string;
+    description: string;
+    created_at: string;
 };
 
 type PageProps = {
@@ -109,6 +126,7 @@ type PageProps = {
     };
     categories: Categories[];
     messages: Message[];
+    guided_prompts: string[];
 };
 
 export default function Dashboard() {
@@ -116,6 +134,7 @@ export default function Dashboard() {
         isCompleted,
         auth,
         categories,
+        guided_prompts,
         messages: initialMessages,
     } = usePage<PageProps>().props;
 
@@ -152,9 +171,21 @@ export default function Dashboard() {
     const skipAutoScrollRef = useRef(false);
 
     // ---- Composer / AI suggestion state ----
-    const [openSuggestAi, setOpenSuggestAi] = useState(false);
+    // AI suggestions are on by default when the page loads. The student can
+    // still turn them off from the "+" options menu.
+    const [openSuggestAi, setOpenSuggestAi] = useState(true);
     const [suggestMessages, setSuggestMessages] = useState<Suggestion[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
+
+    // ---- Inline notices (chat updated, etc.) ----
+    const [notices, setNotices] = useState<Notice[]>([]);
+
+    // ---- Guided prompts state ----
+    // Shown as a dismissible row of chips above the input. Only surfaced
+    // while the composer is empty so it never competes with an in-progress
+    // message, and can be collapsed entirely for the rest of the session.
+    const [showGuidedPrompts, setShowGuidedPrompts] = useState(true);
+    const guidedPromptsScrollRef = useRef<HTMLDivElement | null>(null);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -299,7 +330,7 @@ export default function Dashboard() {
         if (!shouldStickToBottomRef.current) return;
 
         requestAnimationFrame(() => requestAnimationFrame(setScrollBottom));
-    }, [messages]);
+    }, [messages, notices]);
 
     const handleScroll = () => {
         const node = containerRef.current;
@@ -332,7 +363,34 @@ export default function Dashboard() {
 
         channel.listenToAll((event: string, data: any) => {
             if (event.endsWith('MessageSent') || event === 'MessageSent') {
-                appendUniqueMessage(data.message as Message);
+                const incoming = data.message as Message;
+                appendUniqueMessage(incoming);
+                // The counselor replied — the backend flips this student's
+                // sent/seen messages to responded, so mirror that locally.
+                if (incoming.sender_id !== auth.user.id) {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.sender_id === auth.user.id &&
+                            ['sent', 'seen'].includes(statusOf(m))
+                                ? { ...m, status: 'responded' }
+                                : m,
+                        ),
+                    );
+                }
+            }
+
+            // The other side opened the conversation — my sent messages
+            // become seen (never downgrade responded). Payload: { reader_id }
+            if (event.endsWith('MessageSeen') || event === 'MessageSeen') {
+                if (data.reader_id === auth.user.id) return;
+
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.sender_id === auth.user.id && statusOf(m) === 'sent'
+                            ? { ...m, status: 'seen' }
+                            : m,
+                    ),
+                );
             }
         });
 
@@ -340,6 +398,107 @@ export default function Dashboard() {
             echo.leave(`conversation.${conversation_id}`);
         };
     }, [conversation_id]);
+
+    // ---- Seen receipts ----
+    // Tell the server the other side's messages were read, but only while this
+    // tab is actually visible. Re-runs whenever new messages arrive or the tab
+    // regains focus. The ref stops duplicate requests while one is in flight.
+    const markingSeenRef = useRef(false);
+
+    const markIncomingSeen = async () => {
+        if (!conversation_id || markingSeenRef.current) return;
+        if (document.visibilityState !== 'visible') return;
+
+        const hasUnseenIncoming = messages.some(
+            (m) => m.sender_id !== auth.user.id && statusOf(m) === 'sent',
+        );
+        if (!hasUnseenIncoming) return;
+
+        markingSeenRef.current = true;
+        try {
+            await apiService.post(markSeen(conversation_id).url);
+            setMessages((prev) =>
+                prev.map((m) =>
+                    m.sender_id !== auth.user.id && statusOf(m) === 'sent'
+                        ? { ...m, status: 'seen' }
+                        : m,
+                ),
+            );
+        } catch (error) {
+            console.error('Error marking messages as seen', error);
+        } finally {
+            markingSeenRef.current = false;
+        }
+    };
+
+    useEffect(() => {
+        void markIncomingSeen();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messages, conversation_id]);
+
+    useEffect(() => {
+        const onVisible = () => void markIncomingSeen();
+        document.addEventListener('visibilitychange', onVisible);
+        return () =>
+            document.removeEventListener('visibilitychange', onVisible);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messages, conversation_id]);
+
+    // ---- Inline notices ----
+    // Only notification types the backend flags with show_in_chat are shown
+    // here (see NotificationType::chatTimelineTypes()).
+    const loadNotices = () => {
+        if (!conversation_id) return;
+
+        apiService
+            .get(conversationNotices(conversation_id).url)
+            .then(({ data: res }) => setNotices(res.notices ?? []))
+            .catch((error) => console.error('Error loading notices', error));
+    };
+
+    useEffect(() => {
+        loadNotices();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversation_id]);
+
+    useEffect(() => {
+        if (!conversation_id) return;
+
+        const echo = (window as any).Echo;
+        if (!echo) return;
+
+        const channel = echo.private(`App.Models.User.${auth.user.id}`);
+        const handler = (n: any) => {
+            if (!n?.show_in_chat || n.conversation_uuid !== conversation_id) {
+                return;
+            }
+
+            setNotices((prev) =>
+                prev.some((item) => item.id === n.id)
+                    ? prev
+                    : [
+                          ...prev,
+                          {
+                              id: n.id,
+                              type: n.title,
+                              description: n.description,
+                              created_at: new Date().toISOString(),
+                          },
+                      ],
+            );
+        };
+
+        channel.notification(handler);
+
+        return () => {
+            // stopListening (not leave) so other listeners on this user
+            // channel, like the toast listener, keep working.
+            channel.stopListening(
+                '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',
+                handler,
+            );
+        };
+    }, [conversation_id, auth.user.id]);
 
     // ---- Composer handlers ----
     const handleSend = (e: FormEvent) => {
@@ -440,6 +599,26 @@ export default function Dashboard() {
         setActiveTimestampId((prev) => (prev === id ? null : id));
     };
 
+    // Inserts a guided prompt into the composer without clobbering anything
+    // the student may have already started typing.
+    const applyGuidedPrompt = (prompt: string) => {
+        setData('content', data.content ? `${data.content} ${prompt}` : prompt);
+    };
+
+    const handleGuidedPromptsWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        const node = guidedPromptsScrollRef.current;
+        if (!node) return;
+
+        // Only take over when there's actually horizontal room to scroll and the
+        // gesture is primarily vertical (a normal mouse wheel) — this leaves
+        // trackpad horizontal swipes and mobile touch scrolling untouched.
+        if (node.scrollWidth <= node.clientWidth) return;
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+
+        e.preventDefault();
+        node.scrollLeft += e.deltaY;
+    };
+
     const runComposerTour = () => {
         startTour({
             steps: [
@@ -504,6 +683,79 @@ export default function Dashboard() {
         isEnabled,
         isLoading: isPushLoading,
     } = usePushSubscription();
+
+    // ---- Inline notices placement ----
+    // While older pages are still unloaded, hide notices older than the
+    // oldest loaded message so they don't float above a gap in the history.
+    const timeOf = (iso: string) => new Date(iso).getTime();
+    const firstLoadedAt = messages[0] ? timeOf(messages[0].created_at) : null;
+    const allLoaded = currentPage >= lastPage;
+    const visibleNotices = [...notices]
+        .filter(
+            (n) =>
+                allLoaded ||
+                firstLoadedAt === null ||
+                timeOf(n.created_at) >= firstLoadedAt,
+        )
+        .sort((a, b) => timeOf(a.created_at) - timeOf(b.created_at));
+
+    const noticesBefore = (index: number) => {
+        const current = timeOf(messages[index].created_at);
+        const previous =
+            index > 0 ? timeOf(messages[index - 1].created_at) : -Infinity;
+
+        return visibleNotices.filter((n) => {
+            const t = timeOf(n.created_at);
+            return t <= current && t > previous;
+        });
+    };
+
+    const lastMessageTime = messages.length
+        ? timeOf(messages[messages.length - 1].created_at)
+        : -Infinity;
+    const trailingNotices = visibleNotices.filter(
+        (n) => timeOf(n.created_at) > lastMessageTime,
+    );
+
+    const renderNotice = (notice: Notice) => (
+        <div
+            key={`notice-${notice.id}`}
+            className="my-1 flex flex-col items-center gap-1"
+        >
+            <span className="flex max-w-[90%] items-center gap-1.5 rounded-full border bg-background px-3 py-1 text-center text-xs text-muted-foreground">
+                <Info className="size-3 shrink-0 text-primary" />
+                {notice.description}
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+                {dayjs(notice.created_at).format('MMM D, YYYY - hh:mm A')}
+            </span>
+        </div>
+    );
+
+    // ---- Messenger-style delivery status ----
+    // Shown only under the LAST message I sent, straight from the backend
+    // status: sent → seen → responded.
+    let lastMineIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].sender_id === auth.user.id) {
+            lastMineIndex = i;
+            break;
+        }
+    }
+    const lastMine = lastMineIndex !== -1 ? messages[lastMineIndex] : null;
+    const myStatus: 'sent' | 'seen' | 'responded' | null = lastMine
+        ? statusOf(lastMine) === 'responded'
+            ? 'responded'
+            : statusOf(lastMine) === 'seen'
+              ? 'seen'
+              : 'sent'
+        : null;
+    const statusLabel =
+        myStatus === 'responded'
+            ? 'Responded'
+            : myStatus === 'seen'
+              ? 'Seen'
+              : 'Sent';
 
     if (!isCompleted) return <CompleteStudentModal />;
     if (!hasConvo) return <MatchingCounselorModal />;
@@ -602,7 +854,10 @@ export default function Dashboard() {
 
                     <StudentDrawer
                         id="tour-profile-drawer"
-                        onSave={() => loadMessages(1)}
+                        onSave={() => {
+                            loadMessages(1);
+                            loadNotices();
+                        }}
                     />
                 </div>
             </div>
@@ -618,164 +873,186 @@ export default function Dashboard() {
                         const isMine = message.sender_id === auth.user.id;
 
                         return (
-                            <div
-                                key={index}
-                                className={`flex cursor-pointer items-end gap-2 select-none ${isMine ? 'flex-row-reverse' : ''}`}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => toggleTimestamp(message.id)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        toggleTimestamp(message.id);
-                                    }
-                                }}
-                            >
-                                <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
-                                    <AvatarImage
-                                        src={
-                                            !message.sender?.is_anonymous
-                                                ? resolveAvatarUrl(
-                                                      message.sender?.avatar,
-                                                  )
-                                                : '/default.webp'
+                            <Fragment key={message.id ?? index}>
+                                {noticesBefore(index).map(renderNotice)}
+                                <div
+                                    className={`flex cursor-pointer items-end gap-2 select-none ${isMine ? 'flex-row-reverse' : ''}`}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => toggleTimestamp(message.id)}
+                                    onKeyDown={(e) => {
+                                        if (
+                                            e.key === 'Enter' ||
+                                            e.key === ' '
+                                        ) {
+                                            e.preventDefault();
+                                            toggleTimestamp(message.id);
                                         }
-                                        alt={normalizeName(
-                                            message.sender?.name,
-                                        )}
-                                        className="object-cover"
-                                    />
-                                    <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black shadow-md sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
-                                        {getInitials(
-                                            normalizeName(
+                                    }}
+                                >
+                                    <Avatar className="size-8 overflow-hidden rounded-full sm:size-10 md:size-12">
+                                        <AvatarImage
+                                            src={
+                                                !message.sender?.is_anonymous
+                                                    ? resolveAvatarUrl(
+                                                          message.sender
+                                                              ?.avatar,
+                                                      )
+                                                    : '/default.webp'
+                                            }
+                                            alt={normalizeName(
                                                 message.sender?.name,
-                                            ) ?? '',
-                                        )}
-                                    </AvatarFallback>
-                                </Avatar>
-
-                                <div className="flex max-w-[60%] flex-col items-start lg:max-w-[40%]">
-                                    <div
-                                        className={`flex items-center text-xs sm:text-sm`}
-                                    >
-                                        <small className="text-xs text-foreground/80 sm:text-sm">
-                                            {!isMine &&
+                                            )}
+                                            className="object-cover"
+                                        />
+                                        <AvatarFallback className="rounded-lg bg-neutral-200 text-xs text-black shadow-md sm:text-sm lg:text-base dark:bg-neutral-700 dark:text-white">
+                                            {getInitials(
                                                 normalizeName(
                                                     message.sender?.name,
-                                                )}
-                                        </small>
-                                    </div>
+                                                ) ?? '',
+                                            )}
+                                        </AvatarFallback>
+                                    </Avatar>
 
-                                    {/* Messenger-style timestamp: hidden by default,
+                                    <div className="flex max-w-[60%] flex-col items-start lg:max-w-[40%]">
+                                        <div
+                                            className={`flex items-center text-xs sm:text-sm`}
+                                        >
+                                            <small className="text-xs text-foreground/80 sm:text-sm">
+                                                {!isMine &&
+                                                    normalizeName(
+                                                        message.sender?.name,
+                                                    )}
+                                            </small>
+                                        </div>
+
+                                        {/* Messenger-style timestamp: hidden by default,
                                         centered above the bubble, revealed on tap/click
                                         anywhere on the message row (avatar included).
                                         Replaces the old hover Tooltip, which doesn't
                                         work on touch devices. */}
-                                    <div className="flex w-full flex-col items-center">
-                                        {activeTimestampId === message.id && (
-                                            <span className="mb-1 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
-                                                {dayjs(
-                                                    message.created_at,
-                                                ).format(
-                                                    'MMM D, YYYY - hh:mm A',
-                                                )}
-                                            </span>
-                                        )}
-
-                                        <div
-                                            className={`w-full ${message.is_structured && 'mt-4'}`}
-                                        >
-                                            {message.attachments?.length >
-                                                0 && (
-                                                // Attachments (images, videos,
-                                                // audio, files) open their own
-                                                // preview/modal on click. That
-                                                // click still bubbles through
-                                                // the React tree even when the
-                                                // modal renders in a portal, so
-                                                // without stopping it here,
-                                                // opening AND closing the modal
-                                                // would each re-trigger
-                                                // toggleTimestamp on the row —
-                                                // this keeps attachment
-                                                // interactions fully isolated
-                                                // from the timestamp toggle,
-                                                // regardless of attachment type.
-                                                <div
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                >
-                                                    <AttachmentsGrid
-                                                        attachments={
-                                                            message.attachments
-                                                        }
-                                                    />
-                                                </div>
+                                        <div className="flex w-full flex-col items-center">
+                                            {activeTimestampId ===
+                                                message.id && (
+                                                <span className="mb-1 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+                                                    {dayjs(
+                                                        message.created_at,
+                                                    ).format(
+                                                        'MMM D, YYYY - hh:mm A',
+                                                    )}
+                                                </span>
                                             )}
-                                            {message.content && (
-                                                <div
-                                                    className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
-                                                >
+
+                                            <div
+                                                className={`w-full ${message.is_structured && 'mt-4'}`}
+                                            >
+                                                {message.attachments?.length >
+                                                    0 && (
+                                                    // Attachments (images, videos,
+                                                    // audio, files) open their own
+                                                    // preview/modal on click. That
+                                                    // click still bubbles through
+                                                    // the React tree even when the
+                                                    // modal renders in a portal, so
+                                                    // without stopping it here,
+                                                    // opening AND closing the modal
+                                                    // would each re-trigger
+                                                    // toggleTimestamp on the row —
+                                                    // this keeps attachment
+                                                    // interactions fully isolated
+                                                    // from the timestamp toggle,
+                                                    // regardless of attachment type.
                                                     <div
-                                                        className={`relative max-w-full ${
-                                                            message.is_structured
-                                                                ? 'group'
-                                                                : ''
-                                                        }`}
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
                                                     >
-                                                        {message.is_structured && (
-                                                            <span className="absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
-                                                                <Sparkles className="h-3 w-3" />
-                                                                AI Suggested
-                                                            </span>
-                                                        )}
-
-                                                        {message.is_structured && (
-                                                            <>
-                                                                <Sparkles className="absolute -top-2 -left-2 h-4 w-4 text-yellow-400 drop-shadow-sm" />
-                                                                <Sparkles className="absolute -top-1 -right-2 h-3 w-3 text-violet-400 opacity-80" />
-                                                                <Sparkles className="absolute -right-1 bottom-3 h-3.5 w-3.5 text-sky-400 opacity-80" />
-                                                            </>
-                                                        )}
-
-                                                        <p
-                                                            className={`p-3 px-4 text-sm font-medium transition-all sm:text-base ${
-                                                                isMine
-                                                                    ? 'overflow-hidden rounded-t-3xl rounded-tr-3xl rounded-br-sm rounded-bl-3xl bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                                                                    : 'rounded-t-3xl rounded-tl-3xl rounded-br-3xl rounded-bl-sm bg-background'
-                                                            } ${
-                                                                message.is_structured
-                                                                    ? 'shadow-[0_0_18px_rgba(168,85,247,0.25)] ring-2 ring-violet-300/60'
-                                                                    : ''
-                                                            } `}
-                                                        >
-                                                            {message.content}
-                                                        </p>
-                                                        {message.category && (
-                                                            <div className="mt-1 flex justify-end">
-                                                                <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
-                                                                    <Tag className="h-3 w-3" />
-                                                                    {
-                                                                        message
-                                                                            .category
-                                                                            .name
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                        )}
+                                                        <AttachmentsGrid
+                                                            attachments={
+                                                                message.attachments
+                                                            }
+                                                        />
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
+                                                {message.content && (
+                                                    <div
+                                                        className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                    >
+                                                        <div
+                                                            className={`relative max-w-full ${
+                                                                message.is_structured
+                                                                    ? 'group'
+                                                                    : ''
+                                                            }`}
+                                                        >
+                                                            {message.is_structured && (
+                                                                <span className="absolute -top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-violet-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+                                                                    <Sparkles className="h-3 w-3" />
+                                                                    AI Suggested
+                                                                </span>
+                                                            )}
+
+                                                            {message.is_structured && (
+                                                                <>
+                                                                    <Sparkles className="absolute -top-2 -left-2 h-4 w-4 text-yellow-400 drop-shadow-sm" />
+                                                                    <Sparkles className="absolute -top-1 -right-2 h-3 w-3 text-violet-400 opacity-80" />
+                                                                    <Sparkles className="absolute -right-1 bottom-3 h-3.5 w-3.5 text-sky-400 opacity-80" />
+                                                                </>
+                                                            )}
+
+                                                            <p
+                                                                className={`p-3 px-4 text-sm font-medium transition-all sm:text-base ${
+                                                                    isMine
+                                                                        ? 'overflow-hidden rounded-t-3xl rounded-tr-3xl rounded-br-sm rounded-bl-3xl bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                                                                        : 'rounded-t-3xl rounded-tl-3xl rounded-br-3xl rounded-bl-sm bg-background'
+                                                                } ${
+                                                                    message.is_structured
+                                                                        ? 'shadow-[0_0_18px_rgba(168,85,247,0.25)] ring-2 ring-violet-300/60'
+                                                                        : ''
+                                                                } `}
+                                                            >
+                                                                {
+                                                                    message.content
+                                                                }
+                                                            </p>
+                                                            {message.category && (
+                                                                <div className="mt-1 flex justify-end">
+                                                                    <span className="inline-flex items-center gap-1 rounded-full border-violet-400 bg-white px-2 py-0.5 text-xs font-semibold text-violet-700 shadow dark:bg-zinc-900 dark:text-violet-300">
+                                                                        <Tag className="h-3 w-3" />
+                                                                        {
+                                                                            message
+                                                                                .category
+                                                                                .name
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {index === lastMineIndex && (
+                                                    <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+                                                        {myStatus === 'sent' ? (
+                                                            <Check className="size-3" />
+                                                        ) : (
+                                                            <CheckCheck className="size-3 text-primary" />
+                                                        )}
+                                                        <span>
+                                                            {statusLabel}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </Fragment>
                         );
                     })
                 ) : (
                     <EmptyState />
                 )}
+                {trailingNotices.map(renderNotice)}
             </div>
 
             {/* Composer */}
@@ -1000,7 +1277,49 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Input Row — the only normal-flow child of the composer now,
+                {/* Guided prompts — a normal-flow row (not absolutely positioned
+                    like the panel above), so it just adds a small strip above
+                    the input instead of overlaying anything. Only shown while
+                    the composer is empty, and dismissible for the rest of the
+                    session so it never gets in a student's way once they know
+                    it's there. */}
+                {guided_prompts?.length > 0 &&
+                    showGuidedPrompts &&
+                    data.content.trim() === '' && (
+                        <div className="mb-2 flex items-center gap-2">
+                            <MessageCircleQuestion className="size-4 shrink-0 text-muted-foreground" />
+                            <div
+                                ref={guidedPromptsScrollRef}
+                                onWheel={handleGuidedPromptsWheel}
+                                className="flex min-w-0 flex-1 [scrollbar-width:none] gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden"
+                            >
+                                {guided_prompts.map((prompt, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        onClick={() =>
+                                            applyGuidedPrompt(prompt)
+                                        }
+                                        className="shrink-0 cursor-pointer rounded-full border bg-muted/40 px-3 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:border-primary hover:bg-muted hover:text-foreground"
+                                    >
+                                        {prompt}
+                                    </button>
+                                ))}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-6 shrink-0 rounded-full text-muted-foreground"
+                                onClick={() => setShowGuidedPrompts(false)}
+                                title="Hide guided prompts"
+                            >
+                                <XIcon className="size-3.5" />
+                            </Button>
+                        </div>
+                    )}
+
+                {/* Input Row — the only other normal-flow child of the composer,
                     so its height stays constant and the messages list's flex-1
                     space never gets squeezed by category/attachments/AI state.
                     Attachments, Category, and AI Suggestions are now consolidated
@@ -1180,6 +1499,21 @@ export default function Dashboard() {
                                 </DropdownMenuSub>
 
                                 <DropdownMenuSeparator />
+
+                                {/* Guided prompts toggle — lets a student bring
+                                    the chip row back after dismissing it. */}
+                                {guided_prompts?.length > 0 && (
+                                    <DropdownMenuCheckboxItem
+                                        checked={showGuidedPrompts}
+                                        onCheckedChange={(checked) =>
+                                            setShowGuidedPrompts(checked)
+                                        }
+                                        className="cursor-pointer"
+                                    >
+                                        <MessageCircleQuestion className="mr-2 size-4" />
+                                        Guided Prompts
+                                    </DropdownMenuCheckboxItem>
+                                )}
 
                                 {/* AI Suggestions toggle — plain checkbox item, no submenu needed */}
                                 <DropdownMenuCheckboxItem

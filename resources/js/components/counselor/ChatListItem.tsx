@@ -3,7 +3,13 @@ import { useInitials } from '@/hooks/use-initials';
 import { normalizeName, resolveAvatarUrl } from '@/lib/utils';
 import { Conversation, Message, UserProps } from '@/types/entities';
 import dayjs from 'dayjs';
-import { CheckCheckIcon, DotIcon, EyeIcon, SendIcon } from 'lucide-react';
+import {
+    CheckCheckIcon,
+    DotIcon,
+    EyeIcon,
+    SendIcon,
+    TagIcon,
+} from 'lucide-react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { counselorConversation } from '@/routes';
 import { useEffect } from 'react';
@@ -42,6 +48,10 @@ export function ChatListItem({
         message?.sender_id === conversation.counselor_id
             ? 'responded'
             : message?.status;
+
+    // Category the student picked for their latest message (null when none
+    // was chosen, or when the latest message is the counselor's own reply).
+    const categoryName = message?.category?.name;
 
     useEffect(() => {
         const echo = (window as any).Echo;
@@ -112,8 +122,18 @@ export function ChatListItem({
             <div
                 className={`w-full ${displayStatus === 'sent' ? 'font-bold' : ''} text-foreground`}
             >
-                <div className="max-w-48">
-                    <h1 className="truncate text-sm">{displayName}</h1>
+                <div className="flex max-w-48 items-center gap-1.5">
+                    <h1 className="min-w-0 truncate text-sm">{displayName}</h1>
+
+                    {categoryName && (
+                        <span
+                            title={`Category: ${categoryName}`}
+                            className="inline-flex max-w-20 shrink-0 items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                        >
+                            <TagIcon className="size-2.5 shrink-0" />
+                            <span className="truncate">{categoryName}</span>
+                        </span>
+                    )}
                 </div>
                 <div className="flex w-full items-center justify-between">
                     <small className="text-xs">{preview}</small>

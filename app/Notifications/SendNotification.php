@@ -4,7 +4,6 @@ namespace App\Notifications;
 
 use App\Enums\NotificationType;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
@@ -16,20 +15,19 @@ class SendNotification extends Notification
 
     /**
      * @param  array<string, string>  $params  e.g. ['name' => 'Harold Cruz']
+     * @param  array<int, mixed>|null  $channels  null = database, broadcast and web push
      */
     public function __construct(
         public NotificationType $type,
         public array $params = [],
         public array $extra = [],
+        public ?array $channels = null,
     ) {
     }
 
-    /**
-     * The channels the notification should be delivered on.
-     */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast', WebPushChannel::class];
+        return $this->channels ?? ['database', 'broadcast', WebPushChannel::class];
     }
 
     public function toBroadcast(object $notifiable): BroadcastMessage
@@ -51,18 +49,14 @@ class SendNotification extends Notification
             ]);
     }
 
-    /**
-     * Get the array representation for the "database" channel.
-     */
     public function toDatabase(object $notifiable): array
     {
         return $this->payload();
     }
 
     /**
-     * Keep every delivery channel on the same notification payload.
-     *
-     * @return array<string, mixed>
+     * `extra` is merged last, so it can add ids and also override
+     * `description` with a custom sentence.
      */
     protected function payload(): array
     {
@@ -70,12 +64,10 @@ class SendNotification extends Notification
             'type' => $this->type->value,
             'title' => $this->type->value,
             'description' => $this->buildDescription(),
+            'show_in_chat' => $this->type->showInChat(),
         ], $this->extra);
     }
 
-    /**
-     * Same payload, used when the notification is queued and (de)serialized.
-     */
     public function toArray(object $notifiable): array
     {
         return $this->toDatabase($notifiable);

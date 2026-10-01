@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Ai\Agents\CounselingAssistant;
 use App\Ai\Agents\CounselorResponse;
+use App\Ai\Agents\CounselorSummarize;
 use App\Enums\NotificationType;
 use App\Enums\UserRole;
+use App\Events\MessageSeen;
 use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -16,6 +18,7 @@ use App\Notifications\SendNotification;
 use App\Repositories\MessageRepo;
 use App\Services\AttachmentStorageService;
 use App\Services\ImageCompressionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -78,6 +81,39 @@ class MessageController extends Controller
         return response()->json(['error' => $lastError->getMessage()], 500);
     }
 
+    public function summarize(Conversation $conversation): JsonResponse
+    {
+        abort_unless((int) auth()->id() === (int) $conversation->counselor_id, 403);
+
+        $transcript = $conversation->messages()
+            ->latest()
+            ->limit(200)
+            ->get(['sender_id', 'content', 'created_at'])
+            ->reverse()
+            ->filter(fn($m) => filled($m->content))
+            ->map(fn($m) => sprintf(
+                '[%s] %s: %s',
+                $m->created_at->format('M j, g:i A'),
+                (int) $m->sender_id === (int) $conversation->student_id ? 'Student' : 'Counselor',
+                $m->content,
+            ))
+            ->implode("\n");
+
+        if ($transcript === '') {
+            return response()->json(['summary' => 'There are no messages to summarize yet.']);
+        }
+
+        try {
+            $response = (new CounselorSummarize)->prompt($transcript);
+
+            return response()->json(['summary' => trim((string) $response)]);
+        } catch (\Throwable $th) {
+            Log::error('Error summarizing conversation: ' . $th->getMessage(), ['exception' => $th]);
+
+            return response()->json(['message' => 'Could not generate a summary.'], 500);
+        }
+    }
+
     public function create(CreateMessageRequest $request)
     {
         try {
@@ -105,6 +141,25 @@ class MessageController extends Controller
         }
     }
 
+    public function markSeen(Conversation $conversation): JsonResponse
+    {
+        $userId = (int) auth()->id();
+
+        // Only the two participants can mark messages as seen
+        abort_unless(
+            in_array($userId, [(int) $conversation->student_id, (int) $conversation->counselor_id], true),
+            403,
+        );
+
+        $updated = $this->messageRepo->markMessagesAsSeen($conversation, $userId);
+
+        // Only notify the other side if something actually changed
+        if ($updated > 0) {
+            broadcast(new MessageSeen($conversation, $userId));
+        }
+
+        return response()->json(['updated' => $updated]);
+    }
     protected function notifyRecipient(Message $message, Conversation $conversation): void
     {
         $recipientId = $message->sender_id === $conversation->counselor_id
@@ -196,24 +251,37 @@ class MessageController extends Controller
             'error' => $lastError?->getMessage() ?? 'Unable to generate response.'
         ], 500);
     }
-
-    public function show(Message $message)
+    public function notices(string $uuid)
     {
-        //
-    }
+        $user = auth()->user();
 
-    public function edit(Message $message)
-    {
-        //
-    }
+        $roleValue = $user->role instanceof UserRole ? $user->role->value : $user->role;
 
-    public function update(Request $request, Message $message)
-    {
-        //
-    }
+        $conversation = $roleValue === UserRole::STUDENT->value
+            ? $user->studentConversation()->where('uuid', $uuid)->first()
+            : $user->counselorConversations()->where('uuid', $uuid)->first();
 
-    public function destroy(Message $message)
-    {
-        //
+        if (!$conversation) {
+            return response()->json(['notices' => []]);
+        }
+
+        $types = collect(NotificationType::chatTimelineTypes())->map->value->all();
+
+        $notices = $user->notifications()
+            ->whereIn('data->type', $types)
+            ->where('data->conversation_id', $conversation->id)
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn($n) => [
+                'id' => $n->id,
+                'type' => $n->data['type'],
+                'description' => $n->data['description'],
+                'created_at' => $n->created_at->toISOString(),
+            ]);
+
+        return response()->json(['notices' => $notices]);
     }
 }

@@ -16,8 +16,10 @@ use App\Notifications\SendNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -165,48 +167,91 @@ class AdminController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function accounts()
     {
-        //
+        return Inertia::render('admin/accounts/index');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function storeAccount(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'name' => 'required|string|max:50',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $avatarPath = $request->hasFile('avatar')
+            ? $request->file('avatar')->store('avatars', 'public')
+            : null;
+
+        User::create([
+            'uuid' => Str::uuid(),
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => UserRole::ADMIN,
+            'name' => $validated['name'],
+            'avatar' => $avatarPath,
+            'pseudonym' => 'Admin',
+            'is_anonymous' => false,
+            'email_verified_at' => now(),
+        ]);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Account Created Successfully',
+        ]);
+
+        return redirect()->back();
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function updateUser(Request $request, User $user)
     {
-        //
-    }
+        $role = $user->role instanceof UserRole ? $user->role : UserRole::tryFrom((string) $user->role);
+        $isAdmin = $role === UserRole::ADMIN;
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
+        // Validation stays outside the try so errors reach the form fields
+        $validated = $request->validate([
+            'name' => [$isAdmin ? 'nullable' : 'required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'string', 'min:8'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+        ]);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+        try {
+            $attributes = ['email' => $validated['email']];
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            if (array_key_exists('name', $validated)) {
+                $attributes['name'] = $validated['name'];
+            }
+
+            if (!empty($validated['password'])) {
+                $attributes['password'] = Hash::make($validated['password']);
+            }
+
+            if ($request->hasFile('avatar')) {
+                if ($user->avatar) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+
+                $attributes['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            }
+
+            $user->update($attributes);
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'User Updated',
+            ]);
+        } catch (\Throwable $th) {
+            Log::error('Error updating user ' . $th->getMessage());
+
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Something went wrong updating the user.',
+            ]);
+        }
+
+        return redirect()->back();
     }
 }

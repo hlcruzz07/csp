@@ -300,6 +300,7 @@ export function StudentDrawer({ id, onSave }: StudentDrawerProps) {
                                         onChange={(e) =>
                                             setData('pseudonym', e.target.value)
                                         }
+                                        maxLength={50}
                                     />
 
                                     <InputError message={errors.pseudonym} />
@@ -318,6 +319,7 @@ export function StudentDrawer({ id, onSave }: StudentDrawerProps) {
                                     onChange={(e) =>
                                         setData('name', e.target.value)
                                     }
+                                    maxLength={50}
                                 />
 
                                 <InputError message={errors.name} />
@@ -336,6 +338,7 @@ export function StudentDrawer({ id, onSave }: StudentDrawerProps) {
                                     onChange={(e) =>
                                         setData('email', e.target.value)
                                     }
+                                    maxLength={50}
                                 />
 
                                 <InputError message={errors.email} />

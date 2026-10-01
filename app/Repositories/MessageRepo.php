@@ -52,6 +52,15 @@ class MessageRepo
                 'status' => MessageStatus::RESPONDED->value,
             ]);
     }
+    public function markMessagesAsSeen(Conversation $conversation, int $readerId): int
+    {
+        return $conversation->messages()
+            ->where('sender_id', '!=', $readerId)
+            ->where('status', MessageStatus::SENT->value)
+            ->update([
+                'status' => MessageStatus::SEEN->value,
+            ]);
+    }
 
     protected function uploadAttachments(Message $message, array $attachments): void
     {

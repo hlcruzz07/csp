@@ -17,7 +17,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { adminDashboard, colleges, counselors, guidedPrompts } from '@/routes';
+import {
+    accounts,
+    adminDashboard,
+    colleges,
+    counselors,
+    guidedPrompts,
+} from '@/routes';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -40,6 +46,11 @@ const mainNavItems: NavItem[] = [
         title: 'Guided Prompts',
         href: guidedPrompts(),
         icon: MessageCircleCodeIcon,
+    },
+    {
+        title: 'Accounts',
+        href: accounts(),
+        icon: Users,
     },
 ];
 

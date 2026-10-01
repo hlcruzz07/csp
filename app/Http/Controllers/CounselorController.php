@@ -26,6 +26,7 @@ class CounselorController extends Controller
             ->with([
                 'student',
                 'latestMessage.attachments',
+                'latestMessage.category'
             ])
             ->withCount([
                 'messages as unread_count' => function ($query) {
@@ -85,6 +86,7 @@ class CounselorController extends Controller
             ->with([
                 'student',
                 'latestMessage.attachments',
+                'latestMessage.category'
             ])
             ->withCount([
                 'messages as unread_count' => function ($query) {
@@ -93,13 +95,11 @@ class CounselorController extends Controller
                 }
             ])
             ->get();
-        // dd($conversations->toArray());
 
         return Inertia::render('counselor/show', [
             'conversation' => $conversation,
             'conversations' => $conversations,
             'categories' => Category::all(),
-            'guided_prompts' => GuidedPrompt::pluck('name')->toArray()
         ]);
     }
     /**
@@ -135,6 +135,8 @@ class CounselorController extends Controller
                 'avatar' => $avatarPath,
             ]);
 
+            $this->notifyAvatarChanged($counselor);
+
             Inertia::flash('toast', [
                 'type' => 'success',
                 'message' => 'Profile Updated',
@@ -150,6 +152,46 @@ class CounselorController extends Controller
             Log::error('Error updating profile ' . $th->getMessage());
 
             return redirect()->back();
+        }
+    }
+
+    /**
+     * One notice per conversation: each notification carries its conversation,
+     * so it shows up in that chat's timeline for both sides.
+     */
+    protected function notifyAvatarChanged(User $counselor): void
+    {
+        try {
+            $counselor->counselorConversations()
+                ->with('student')
+                ->get()
+                ->each(function ($conversation) use ($counselor) {
+                    $extra = [
+                        'conversation_id' => $conversation->id,
+                        'conversation_uuid' => $conversation->uuid,
+                    ];
+
+                    // Counselor: stored only. It shows in their own chat
+                    // without a toast or push for their own action.
+                    $counselor->notify(new SendNotification(
+                        NotificationType::CHAT_UPDATED,
+                        [],
+                        $extra + ['description' => 'You updated your profile picture.'],
+                        ['database'],
+                    ));
+
+                    // Student: stored and broadcast, so it appears live in the
+                    // open chat and triggers their toast.
+                    $conversation->student?->notify(new SendNotification(
+                        NotificationType::CHAT_UPDATED,
+                        [],
+                        $extra + ['description' => "{$counselor->name} updated their profile picture."],
+                        ['database', 'broadcast'],
+                    ));
+                });
+        } catch (\Throwable $th) {
+            // A notification failure must never undo the avatar update.
+            Log::error('Error notifying avatar change ' . $th->getMessage());
         }
     }
 

@@ -51,6 +51,11 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin'])->group(fu
     Route::patch('/guided-prompt/{id}/update', [GuidedPromptController::class, 'update'])->name('updatePrompt');
     Route::post('/guided-prompt/store', [GuidedPromptController::class, 'store'])->name('createPrompt');
     Route::delete('/guided-prompt/{id}/delete', [GuidedPromptController::class, 'destroy'])->name('deletePrompt');
+
+    Route::get('/accounts', [AdminController::class, 'accounts'])->name('accounts');
+    Route::post('/account/store', [AdminController::class, 'storeAccount'])->name('createAccount');
+    Route::post('/users/{user}', [AdminController::class, 'updateUser'])->name('updateUser');
+
 });
 Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->group(function () {
 
@@ -59,6 +64,8 @@ Route::prefix('counselor')->middleware(['auth', 'verified', 'role:counselor'])->
     Route::get('/conversations', [CounselorController::class, 'index'])->name('counselorDashboard');
     Route::get('/conversations/{uuid}', [CounselorController::class, 'show'])->name('counselorConversation');
     Route::post('/updateProfile', [CounselorController::class, 'update'])->name('counselorUpdate');
+    Route::post('/conversations/{conversation:uuid}/summarize', [MessageController::class, 'summarize'])
+        ->name('summarizeConversation');
 });
 
 Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->group(function () {
@@ -72,6 +79,10 @@ Route::prefix('student')->middleware(['auth', 'verified', 'role:student'])->grou
 
 Route::prefix('messages')->middleware(['auth', 'verified', 'role:student|counselor'])->group(function () {
     Route::post('/create', [MessageController::class, 'create'])->name('sendMessage');
+    Route::post('/conversations/{conversation:uuid}/seen', [MessageController::class, 'markSeen'])
+        ->name('markSeen');
+    Route::get('/conversations/{conversation:uuid}/notices', [MessageController::class, 'notices'])
+        ->name('conversationNotices');
 });
 
 Route::post('/push-subscriptions', function (Request $request) {

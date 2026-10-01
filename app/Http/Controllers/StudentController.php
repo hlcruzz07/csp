@@ -10,9 +10,12 @@ use App\Http\Requests\UpdateStudentProfileRequest;
 use App\Jobs\FindStudentCounselorJob;
 use App\Models\Category;
 use App\Models\College;
+use App\Models\GuidedPrompt;
+use App\Models\User;
 use App\Notifications\SendNotification;
 use App\Repositories\StudentRepo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -43,6 +46,7 @@ class StudentController extends Controller
             'colleges' => $colleges,
             'isCompleted' => $isCompleted,
             'categories' => Category::all(),
+            'guided_prompts' => GuidedPrompt::pluck('name')->toArray()
         ]);
     }
 
@@ -79,20 +83,45 @@ class StudentController extends Controller
     }
     public function updateProfile(UpdateStudentProfileRequest $request)
     {
-
         try {
+            // Snapshot BEFORE the update so we can tell what actually changed
+            $before = auth()->user()->only(['name', 'pseudonym', 'is_anonymous', 'email', 'password']);
+
             $student = $this->studentRepo->updateProfile(
                 $request->all(),
                 auth()->user()->id
             );
+            $student->refresh();
 
+            $changes = $this->describeProfileChanges($before, $student);
+            $conversation = $student->studentConversation;
 
-            $counselor = $student->studentConversation->counselor;
+            if ($changes !== null && $conversation) {
+                $extra = [
+                    'conversation_id' => $conversation->id,
+                    'conversation_uuid' => $conversation->uuid,
+                ];
 
-            $counselor->notify(new SendNotification(
-                NotificationType::CHAT_UPDATED,
-                ['name' => $student->name],
-            ));
+                // Student: stored only, so it shows in their own chat with no
+                // extra toast or push for something they just did themselves.
+                $student->notify(new SendNotification(
+                    NotificationType::CHAT_UPDATED,
+                    [],
+                    $extra + ['description' => "You updated your {$changes}."],
+                    ['database'],
+                ));
+
+                // Counselor: all channels. Use the pseudonym for anonymous students.
+                if ($counselor = $conversation->counselor) {
+                    $displayName = $student->is_anonymous ? $student->pseudonym : $student->name;
+
+                    $counselor->notify(new SendNotification(
+                        NotificationType::CHAT_UPDATED,
+                        [],
+                        $extra + ['description' => "{$displayName} updated their {$changes}."],
+                    ));
+                }
+            }
 
             Inertia::flash('toast', [
                 'type' => 'success',
@@ -110,6 +139,36 @@ class StudentController extends Controller
 
             return redirect()->back();
         }
+    }
+
+    /**
+     * Human-readable list of what changed, or null when nothing relevant did.
+     * email / password → "account details"; name, pseudonym and
+     * is_anonymous are named individually.
+     */
+    protected function describeProfileChanges(array $before, User $after): ?string
+    {
+        $parts = [];
+
+        if ($before['name'] !== $after->name) {
+            $parts[] = 'name';
+        }
+
+        if ($before['pseudonym'] !== $after->pseudonym) {
+            $parts[] = 'pseudonym';
+        }
+
+        if ((bool) $before['is_anonymous'] !== (bool) $after->is_anonymous) {
+            $parts[] = $after->is_anonymous
+                ? 'anonymous mode (now on)'
+                : 'anonymous mode (now off)';
+        }
+
+        if ($before['email'] !== $after->email || $before['password'] !== $after->password) {
+            $parts[] = 'account details';
+        }
+
+        return $parts === [] ? null : Arr::join($parts, ', ', ' and ');
     }
 
     /**
